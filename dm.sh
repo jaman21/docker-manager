@@ -1305,8 +1305,8 @@ install_container() {
     if [ "$need_env" = "y" ] || [ "$need_env" = "Y" ]; then
         echo "configure environment variables (key=value format)"
         echo "examples:"
+        echo " HY2_DOMAIN=example.com"
         echo " HY2_AUTH=f4beaf21"
-        echo " MYSQL_ROOT_PASSWORD=passwd"
         echo
         while true; do
             read -p "enter environment variable: " env_var
