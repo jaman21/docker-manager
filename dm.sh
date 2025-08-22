@@ -579,10 +579,7 @@ start_container_with_config() {
         return 0
     fi
 
-    read -p "start container? (Y/n): " restart_confirm
-    if [ "$restart_confirm" != "N" ] && [ "$restart_confirm" != "n" ]; then
-        start_container
-    fi
+    start_container
 }
 
 handle_writable_layer_mount() {
@@ -1330,7 +1327,7 @@ install_container() {
                     read -p "need to add more environment variables? (y/n): " more_env
                     case "$more_env" in
                         Y|y) break ;;
-                        N|n|) break 2 ;;
+                        N|n) break 2 ;;
                         *) echo -e "${RED}please enter y or n${NC}" ;;
                     esac
                 done
@@ -1505,7 +1502,7 @@ install_container() {
                 read -p "need to map more ports? (y/n): " more_ports
                 case "$more_ports" in
                     Y|y) break ;;
-                    N|n|) break 2 ;;
+                    N|n) break 2 ;;
                     *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
@@ -1555,7 +1552,7 @@ install_container() {
                 read -p "need to add more mount points? (y/n): " more_volumes
                 case "$more_volumes" in
                     Y|y) break ;;
-                    N|n|) break 2 ;;
+                    N|n) break 2 ;;
                     *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
