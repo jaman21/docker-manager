@@ -352,7 +352,6 @@ publish_docker() {
 		else
 			while true; do
 				read -r -p "directory does not exist, retry input? (y/n): " RETRY
-				RETRY=${RETRY:-Y}
 				case "$RETRY" in
 					y|Y) break;;
 					n|N) return 1;;
@@ -372,7 +371,6 @@ publish_docker() {
 			else
 				while true; do
 					read -r -p "file does not exist, retry input? (y/n): " RETRY
-					RETRY=${RETRY:-Y}
 					case "$RETRY" in
 						y|Y) break;;
 						n|N) return 1;;
@@ -440,7 +438,6 @@ publish_docker() {
             unset PASSWORD
 			while true; do
 				read -r -p "login failed, retry? (y/n): " RETRY
-				RETRY=${RETRY:-Y}
 				case "$RETRY" in
 					y|Y) break;;
 					n|N) return 1;;
@@ -475,10 +472,9 @@ publish_docker() {
 	if [[ "$TAG" != "latest" ]]; then
 		while true; do
 			read -r -p "also push latest tag? (y/n): " ALSO_LATEST
-			ALSO_LATEST=${ALSO_LATEST:-N}
 			case "$ALSO_LATEST" in
 				y|Y|n|N) break;;
-				                *) echo "please enter y or n";;
+				*) echo "please enter y or n";;
 			esac
 		done
 	fi
@@ -583,8 +579,10 @@ start_container_with_config() {
         return 0
     fi
 
-    read -p "start container? (y/n): " restart_confirm
-    if [ "$restart_confirm" = "y" ] || [ "$restart_confirm" = "Y" ] || [ -z "$restart_confirm" ]; then
+    read -p "start container? (Y/n): " restart_confirm
+    if [ "$restart_confirm" = "N" ] || [ "$restart_confirm" = "n" ]; then
+        ;
+    else
         start_container
     fi
 }
@@ -1134,11 +1132,7 @@ modify_container_config() {
 
                             if check_network_exists "$new_network_name"; then
                                 echo -e "${RED}network name '$new_network_name' already exists${NC}"
-                                read -p "re-enter network name? (y/n): " retry
-                                if [[ "$retry" != "y" && "$retry" != "Y" ]]; then
-                                    read -p "press enter to continue..."
-                                    continue 2
-                                fi
+                                read -p "re-enter network name, press enter to continue..."
                                 continue
                             fi
 
@@ -1209,18 +1203,18 @@ modify_container_config() {
                 ;;
 
             3)
-                read -p "set auto-start? (y/n): " auto_restart
-                if [ "$auto_restart" = "y" ] || [ "$auto_restart" = "Y" ]; then
-                    if docker update --restart=always "$CONTAINER_ID"; then
-                        echo -e "${GREEN}set to auto-start${NC}"
-                    else
-                        echo -e "${RED}failed to set auto-start${NC}"
-                    fi
-                else
+                read -p "set auto-start? (Y/n): " auto_restart
+                if [ "$auto_restart" = "n" ] || [ "$auto_restart" = "N" ]; then
                     if docker update --restart=no "$CONTAINER_ID"; then
                         echo -e "${GREEN}auto-start cancelled${NC}"
                     else
                         echo -e "${RED}failed to cancel auto-start${NC}"
+                    fi
+                else
+                    if docker update --restart=always "$CONTAINER_ID"; then
+                        echo -e "${GREEN}set to auto-start${NC}"
+                    else
+                        echo -e "${RED}failed to set auto-start${NC}"
                     fi
                 fi
                 read -p "press enter to continue..."
@@ -1303,7 +1297,6 @@ install_container() {
             fi
         else
             echo -e "${RED}container name '$container_name' does not follow docker naming rules${NC}"
-            echo "container name can only contain letters, numbers, underscores, dots and hyphens, cannot start with special characters"
             read -p "use auto-generated name? (Y/q): " use_auto_name
             if [[ "$use_auto_name" = "q" && "$use_auto_name" != "Q" ]]; then
                 return 1
@@ -1339,7 +1332,7 @@ install_container() {
                     read -p "need to add more environment variables? (y/n): " more_env
                     case "$more_env" in
                         Y|y) break ;;
-                        N|n|"") break 2 ;;
+                        N|n|) break 2 ;;
                         *) echo -e "${RED}please enter y or n${NC}" ;;
                     esac
                 done
@@ -1349,7 +1342,6 @@ install_container() {
                 
             else
                 echo -e "${RED}invalid environment variable format, use KEY=value format${NC}"
-                echo "environment variable name must start with letter or underscore, and contain only letters, numbers, and underscores"
             fi
         done
     fi
@@ -1416,11 +1408,7 @@ install_container() {
                         fi
                         if check_network_exists "$new_network_name"; then
                             echo -e "${RED}network name '$new_network_name' already exists${NC}"
-                            read -p "re-enter network name? (y/n): " retry
-                            if [[ "$retry" != "y" && "$retry" != "Y" ]]; then
-                                echo "network creation cancelled"
-                                break
-                            fi
+                            read -p "re-enter network name, press enter to continue..."
                             continue
                         fi
                         break
@@ -1514,14 +1502,16 @@ install_container() {
             fi
 
             echo -e "${GREEN}added port mapping: $host_port:$container_port${NC}"
+
             while true; do
                 read -p "need to map more ports? (y/n): " more_ports
                 case "$more_ports" in
                     Y|y) break ;;
-                    N|n|"") break 2 ;;
+                    N|n|) break 2 ;;
                     *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
+
             if [[ "$more_ports" = "N" || "$more_ports" = "n" || "$more_ports" = "" ]]; then
                 break
             fi
@@ -1567,10 +1557,11 @@ install_container() {
                 read -p "need to add more mount points? (y/n): " more_volumes
                 case "$more_volumes" in
                     Y|y) break ;;
-                    N|n|"") break 2 ;;
+                    N|n|) break 2 ;;
                     *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
+
             if [[ "$more_volumes" = "N" || "$more_volumes" = "n" || "$more_volumes" = "" ]]; then
                 break
             fi
