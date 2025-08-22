@@ -580,9 +580,7 @@ start_container_with_config() {
     fi
 
     read -p "start container? (Y/n): " restart_confirm
-    if [ "$restart_confirm" = "N" ] || [ "$restart_confirm" = "n" ]; then
-        ;
-    else
+    if [ "$restart_confirm" != "N" ] && [ "$restart_confirm" != "n" ]; then
         start_container
     fi
 }
