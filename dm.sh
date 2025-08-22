@@ -1326,7 +1326,7 @@ install_container() {
                         *) echo -e "${RED}please enter y or n${NC}" ;;
                     esac
                 done
-                if [[ "$more_env" = "N" || "$more_env" = "n" || -z "$more_env" ]]; then
+                if [[ "$more_env" = "N" || "$more_env" = "n" || "$more_env" = "" ]]; then
                     break
                 fi
                 
@@ -1505,7 +1505,7 @@ install_container() {
                     *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
-            if [[ "$more_ports" = "N" || "$more_ports" = "n" || -z "$more_ports" ]]; then
+            if [[ "$more_ports" = "N" || "$more_ports" = "n" || "$more_ports" = "" ]]; then
                 break
             fi
         done
@@ -1554,7 +1554,7 @@ install_container() {
                     *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
-            if [[ "$more_volumes" = "N" || "$more_volumes" = "n" || -z "$more_volumes" ]]; then
+            if [[ "$more_volumes" = "N" || "$more_volumes" = "n" || "$more_volumes" = "" ]]; then
                 break
             fi
         done
