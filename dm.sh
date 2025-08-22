@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# 检测终端类型并设置适当的选项
+if [ -t 0 ] && [ -t 1 ]; then
+    # 交互式终端
+    export TERM=${TERM:-xterm}
+    # 设置作业控制（如果支持）
+    if [ -n "$BASH_VERSION" ]; then
+        set -m 2>/dev/null || true
+    fi
+else
+    # 非交互式终端，禁用某些功能
+    export TERM=dumb
+    # 禁用作业控制
+    if [ -n "$BASH_VERSION" ]; then
+        set +m 2>/dev/null || true
+    fi
+fi
+
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -1763,19 +1780,35 @@ main() {
             show_container_config
             if start_container; then
                 if docker exec "$CONTAINER_ID" test -x /bin/bash 2>/dev/null; then
-                    docker exec -it "$CONTAINER_ID" /bin/bash 2>/dev/null || true
+                    if [ -t 0 ] && [ -t 1 ]; then
+                        docker exec -it "$CONTAINER_ID" /bin/bash 2>/dev/null || true
+                    else
+                        docker exec -i "$CONTAINER_ID" /bin/bash 2>/dev/null || true
+                    fi
                     show_container=false
                     continue
                 elif docker exec "$CONTAINER_ID" test -x /bin/sh 2>/dev/null; then
-                    docker exec -it "$CONTAINER_ID" /bin/sh 2>/dev/null || true
+                    if [ -t 0 ] && [ -t 1 ]; then
+                        docker exec -it "$CONTAINER_ID" /bin/sh 2>/dev/null || true
+                    else
+                        docker exec -i "$CONTAINER_ID" /bin/sh 2>/dev/null || true
+                    fi
                     show_container=false
                     continue
                 elif docker exec "$CONTAINER_ID" test -x /bin/ash 2>/dev/null; then
-                    docker exec -it "$CONTAINER_ID" /bin/ash 2>/dev/null || true
+                    if [ -t 0 ] && [ -t 1 ]; then
+                        docker exec -it "$CONTAINER_ID" /bin/ash 2>/dev/null || true
+                    else
+                        docker exec -i "$CONTAINER_ID" /bin/ash 2>/dev/null || true
+                    fi
                     show_container=false
                     continue
                 elif docker exec "$CONTAINER_ID" test -x /bin/zsh 2>/dev/null; then
-                    docker exec -it "$CONTAINER_ID" /bin/zsh 2>/dev/null || true
+                    if [ -t 0 ] && [ -t 1 ]; then
+                        docker exec -it "$CONTAINER_ID" /bin/zsh 2>/dev/null || true
+                    else
+                        docker exec -i "$CONTAINER_ID" /bin/zsh 2>/dev/null || true
+                    fi
                     show_container=false
                     continue
                 fi
