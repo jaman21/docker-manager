@@ -63,7 +63,7 @@ if [ -z "$PACKAGE_MANAGER" ]; then
     echo -e "${RED}- alpine linux (apk)${NC}"
     echo -e "${YELLOW}press enter to continue...${NC}"
     read -p ""
-    exec bash
+    exit 1
 fi
 
 if ! command -v sudo >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1; then
@@ -89,7 +89,7 @@ if ! command -v sudo >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1; then
             echo -e "${RED}unsupported package manager${NC}"
             echo -e "${YELLOW}press enter to continue...${NC}"
             read -p ""
-            exec bash
+            exit 1
             ;;
     esac
 fi
@@ -118,7 +118,7 @@ function INSTALL_PREREQUISITES() {
 				echo -e "${RED}unsupported system type${NC}"
                 echo -e "${YELLOW}press enter to continue...${NC}"
 				read -p ""
-				exec bash
+				exit 1
 				;;
 		esac
 	fi
@@ -169,7 +169,7 @@ function INSTALL_PREREQUISITES() {
                 echo -e "${RED}docker installation failed${NC}"
                 echo -e "${YELLOW}press enter to continue...${NC}"
                 read -p ""
-                exec bash
+                exit 1
             fi
         elif [ "$PACKAGE_MANAGER" = "apt" ]; then
             if [ -n "$custom_docker_dir" ]; then
@@ -182,14 +182,14 @@ function INSTALL_PREREQUISITES() {
                 echo -e "${RED}docker installation failed${NC}"
                 echo -e "${YELLOW}press enter to continue...${NC}"
                 read -p ""
-                exec bash
+                exit 1
             fi
         elif [ "$PACKAGE_MANAGER" = "pacman" ]; then
             if ! pacman -S docker --noconfirm; then
                 echo -e "${RED}docker installation failed${NC}"
                 echo -e "${YELLOW}press enter to continue...${NC}"
                 read -p ""
-                exec bash
+                exit 1
             fi
             
             if [ -n "$custom_docker_dir" ]; then
@@ -208,7 +208,7 @@ EOF
                 echo -e "${RED}docker installation failed${NC}"
                 echo -e "${YELLOW}press enter to continue...${NC}"
                 read -p ""
-                exec bash
+                exit 1
             fi
             
             if [ -n "$custom_docker_dir" ]; then
@@ -227,7 +227,7 @@ EOF
             echo -e "${RED}docker installation failed, unsupported system type${NC}"
             echo -e "${YELLOW}press enter to continue...${NC}"
             read -p ""
-            exec bash
+            exit 1
         fi
         
 
@@ -243,7 +243,7 @@ EOF
                     echo -e "${RED}docker compose installation failed${NC}"
                     echo -e "${YELLOW}press enter to continue...${NC}"
                     read -p ""
-                    exec bash
+                    exit 1
                 fi
             }
         fi
@@ -266,7 +266,7 @@ EOF
             echo -e "${GREEN}next time you can use 'dm' command to start${NC}"
             echo -e "${YELLOW}press enter to continue...${NC}"
             read -r
-            exec bash
+            exit 0
         fi
     fi
 fi
@@ -978,7 +978,7 @@ show_container_list() {
             if [ -n "$CONTAINER_ID" ]; then
                 break
             else
-                exec bash
+                exit 0
             fi
         fi
 
