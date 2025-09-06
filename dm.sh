@@ -1,20 +1,15 @@
 #!/bin/bash
-
-# 检测终端类型并设置适当的选项
 if [ -t 0 ] && [ -t 1 ]; then
-    # 交互式终端
     export TERM=${TERM:-xterm}
-    # 设置作业控制（如果支持）
     if [ -n "$BASH_VERSION" ]; then
         set -m 2>/dev/null
     fi
 else
-    # 非交互式终端，禁用某些功能
-    export TERM=dumb
-    # 禁用作业控制
-    if [ -n "$BASH_VERSION" ]; then
-        set +m 2>/dev/null
-    fi
+    # export TERM=dumb
+    # if [ -n "$BASH_VERSION" ]; then
+    #     set +m 2>/dev/null
+    # fi
+    exit
 fi
 
 RED='\033[0;31m'
@@ -129,7 +124,7 @@ function INSTALL_PREREQUISITES() {
         
         while true; do
             echo -ne "${BLUE}press enter for default directory (optional): ${NC}"
-            read custom_docker_dir
+            read -r custom_docker_dir
             
             if [[ -z "$custom_docker_dir" ]]; then
                 break
@@ -260,7 +255,7 @@ EOF
             echo -e "${GREEN}next time you can use 'dm' command to start${NC}"
             echo -e "${YELLOW}press enter to continue...${NC}"
             read -r
-            exit 0 2>/dev/null
+            exit
         fi
     fi
 fi
@@ -287,7 +282,7 @@ cleanup_resources() {
             echo "1) safe cleanup (only dangling resources)"
             echo "2) deep cleanup (all unused resources)"
             echo "3) cancel"
-            read -p "choose [1]: " cleanup_level
+            read -r -p "choose [1]: " cleanup_level
             cleanup_level=${cleanup_level:-1}
 
             case "$cleanup_level" in
@@ -305,7 +300,7 @@ cleanup_resources() {
                     docker network prune -f
                     ;;
                 2)
-                    read -p "confirm continue? (y/N): " confirm
+                    read -r -p "confirm continue? (y/N): " confirm
                     if [[ "$confirm" =~ ^[Yy]$ ]]; then
                         echo "cleaning up all unused images..."
                         docker image prune -a -f
@@ -329,14 +324,13 @@ cleanup_resources() {
                     echo "invalid selection, cleanup operation cancelled"
                     ;;
             esac
-            read -p "press enter to continue..."
+            read -r -p "press enter to continue..."
             ;;
         *)
             return 1
             ;;
     esac
 }
-
 
 publish_docker() {
 	while true; do
@@ -514,14 +508,15 @@ publish_docker() {
 		docker buildx build --platform "$PLATFORMS" -t "$REPO:$TAG" -f "$DOCKERFILE" "$PROJECT_DIR" --push
 	fi
 
-	read -p "publishing completed, press enter to continue..."
+	read -r -p "publishing completed, press enter to continue..."
 	return 0
 }
 
 stop_container() {
     local wait_time=${1:-2}
 
-    local container_status=$(get_container_status "$CONTAINER_ID")
+    local container_status
+    container_status=$(get_container_status "$CONTAINER_ID")
 
     if [ "$container_status" = "running" ]; then
         if docker stop "$CONTAINER_ID" >/dev/null 2>&1; then
@@ -544,7 +539,8 @@ stop_container() {
 
 start_container() {
     local wait_time=${1:-3}
-    local container_status=$(get_container_status "$CONTAINER_ID")
+    local container_status
+    container_status=$(get_container_status "$CONTAINER_ID")
 
     if [ "$container_status" = "running" ]; then
         return 0
@@ -567,7 +563,8 @@ start_container() {
 }
 
 start_container_with_config() {
-    local container_status=$(get_container_status "$CONTAINER_ID")
+    local container_status
+    container_status=$(get_container_status "$CONTAINER_ID")
 
     if [ "$container_status" = "running" ]; then
         return 0
@@ -589,11 +586,15 @@ handle_writable_layer_mount() {
         return 1
     fi
 
-    local overlay_data=$(docker inspect "$container_id" -f '{{json .GraphDriver.Data}}' 2>/dev/null)
+    local overlay_data
+    overlay_data=$(docker inspect "$container_id" -f '{{json .GraphDriver.Data}}' 2>/dev/null)
 
-    local upper_dir=$(echo "$overlay_data" | jq -r '.UpperDir')
-    local lower_dir=$(echo "$overlay_data" | jq -r '.LowerDir')
-    local work_dir=$(echo "$overlay_data" | jq -r '.WorkDir')
+    local upper_dir
+    upper_dir=$(echo "$overlay_data" | jq -r '.UpperDir')
+    local lower_dir
+    lower_dir=$(echo "$overlay_data" | jq -r '.LowerDir')
+    local work_dir
+    work_dir=$(echo "$overlay_data" | jq -r '.WorkDir')
 
     if [ -z "$upper_dir" ] || [ ! -d "$upper_dir" ]; then
         echo "cannot get container filesystem information"
@@ -622,19 +623,20 @@ handle_writable_layer_mount() {
     echo -e "${GREEN}1) use local root environment${NC}"
     echo -e "${GREEN}2) use container root environment${NC}"
     echo -e "${GREEN}3) enter volume directory${NC}"
-    read -p "$(tput setaf 3)choose (1/2/3) enter=2: $(tput sgr0)" choice
+    read -r -p "$(tput setaf 3)choose (1/2/3) enter=2: $(tput sgr0)" choice
 
     case "$choice" in
         1)
-            echo ""
+            echo 
             echo -e "${YELLOW}entered local root environment in container directory, type exit to quit${NC}"
             (cd "$mount_point" && /bin/bash)
             sync
             ;;
         3)
-            echo ""
+            echo 
             echo -e "${YELLOW}getting container volume information...${NC}"
-            local volumes_info=$(docker inspect "$container_id" -f '{{range .Mounts}}{{.Source}}|{{.Destination}}{{println}}{{end}}' 2>/dev/null)
+            local volumes_info
+            volumes_info=$(docker inspect "$container_id" -f '{{range .Mounts}}{{.Source}}|{{.Destination}}{{println}}{{end}}' 2>/dev/null)
 
             if [ -n "$volumes_info" ]; then
                 local volume_count=0
@@ -658,7 +660,7 @@ handle_writable_layer_mount() {
                     done
 
                     while true; do
-                        read -p "choose volume number to enter (1-$volume_count) or q to return: " vol_choice
+                        read -r -p "choose volume number to enter (1-$volume_count) or q to return: " vol_choice
 
                         if [ "$vol_choice" = "q" ] || [ "$vol_choice" = "Q" ]; then
                             break
@@ -688,8 +690,9 @@ handle_writable_layer_mount() {
             echo -e "${YELLOW}trying to enter container root environment, type exit to quit${NC}"
 
             [ -d "$mount_point/opt" ] || mkdir -p "$mount_point/opt"
-            > "$mount_point/opt/env.sh"
-            local env_output=$(docker inspect "$container_id" -f '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null)
+            true > "$mount_point/opt/env.sh"
+            local env_output
+            env_output=$(docker inspect "$container_id" -f '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null)
             if [ -n "$env_output" ]; then
                 echo "$env_output" | while IFS= read -r line; do
                     if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] && [[ ! "$line" =~ [%{}] ]]; then
@@ -830,7 +833,7 @@ check_network_exists() {
 
 show_network_list() {
     echo "available networks: "
-    echo ""
+    echo 
 
     G_NETWORK_IDS=()
     G_NETWORK_NAMES=()
@@ -839,10 +842,14 @@ show_network_list() {
 
     while IFS= read -r line; do
         if [[ "$line" =~ ^[a-f0-9]{12,64} ]]; then
-            local network_id=$(echo "$line" | awk '{print $1}')
-            local network_name=$(echo "$line" | awk '{print $2}')
-            local network_driver=$(echo "$line" | awk '{print $3}')
-            local network_scope=$(echo "$line" | awk '{print $4}')
+            local network_id
+            network_id=$(echo "$line" | awk '{print $1}')
+            local network_name
+            network_name=$(echo "$line" | awk '{print $2}')
+            local network_driver
+            network_driver=$(echo "$line" | awk '{print $3}')
+            local network_scope
+            network_scope=$(echo "$line" | awk '{print $4}')
 
             if [[ -n "$network_id" && -n "$network_name" && -n "$network_driver" ]]; then
                 G_NETWORK_IDS+=("$network_id")
@@ -870,11 +877,11 @@ show_network_list() {
             "${G_NETWORK_IDS[i]}"
     done
 
-    echo ""
+    echo 
 
     G_NETWORK_COUNT=${#G_NETWORK_IDS[@]}
     while true; do
-        read -p "select network number (1-$G_NETWORK_COUNT) or q to return: " choice
+        read -r -p "select network number (1-$G_NETWORK_COUNT) or q to return: " choice
 
         if [ "$choice" = "q" ] || [ "$choice" = "Q" ]; then
             return 1
@@ -906,19 +913,16 @@ show_container_list() {
         if [ -n "$container_id" ]; then
             G_CONTAINER_IDS+=("$container_id")
 
-            local status="unknown"
-            local image="unknown"
-            local name="unknown"
+            local container_status
+            container_status=$(get_container_status "$container_id")
+            local container_image
+            container_image=$(docker inspect "$container_id" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
+            local container_name
+            container_name=$(docker inspect "$container_id" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo "unknown")
 
-            if docker inspect "$container_id" >/dev/null 2>&1; then
-                status=$(docker inspect "$container_id" -f '{{.State.Status}}' 2>/dev/null || echo "unknown")
-                image=$(docker inspect "$container_id" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
-                name=$(docker inspect "$container_id" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo "unknown")
-            fi
-
-            G_CONTAINER_STATUSES+=("$status")
-            G_CONTAINER_IMAGES+=("$image")
-            G_CONTAINER_NAMES+=("$name")
+            G_CONTAINER_STATUSES+=("$container_status")
+            G_CONTAINER_IMAGES+=("$container_image")
+            G_CONTAINER_NAMES+=("$container_name")
         fi
     done < <(docker ps -a -q 2>/dev/null)
 
@@ -955,17 +959,17 @@ show_container_list() {
             "${G_CONTAINER_IMAGES[i]}"
     done
 
-    echo ""
+    echo 
 
     G_CONTAINER_COUNT=${#G_CONTAINER_IDS[@]}
     while true; do
-        read -p "enter container number (1-$G_CONTAINER_COUNT) or i to install new container, q to quit: " choice
+        read -r -p "enter container number (1-$G_CONTAINER_COUNT) or i to install new container, q to quit: " choice
 
         if [ "$choice" = "q" ] || [ "$choice" = "Q" ]; then
             if [ -n "$CONTAINER_ID" ]; then
                 break
             else
-                exit 0 2>/dev/null
+                exit
             fi
         fi
 
@@ -1001,11 +1005,14 @@ show_container_list() {
 }
 
 show_container_config() {
-    echo ""
+    echo 
 
-    local container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo "")
-    local container_image=$(docker inspect "$CONTAINER_ID" -f '{{.Config.Image}}' 2>/dev/null || echo "")
-    local container_status=$(get_container_status "$CONTAINER_ID")
+    local container_name
+    container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo )
+    local container_image
+    container_image=$(docker inspect "$CONTAINER_ID" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
+    local container_status
+    container_status=$(get_container_status "$CONTAINER_ID")
 
     if [ -z "$container_name" ] || [ -z "$container_image" ]; then
         echo -e "\033[0;33mcannot get complete container information\033[0m"
@@ -1017,35 +1024,40 @@ show_container_config() {
     echo -e "${GREEN}container status:${NC} $container_status"
     echo -e "${GREEN}image name:${NC} $container_image"
 
-    local entrypoint=$(docker inspect "$CONTAINER_ID" -f '{{range .Config.Entrypoint}}{{.}} {{end}}' 2>/dev/null)
+    local entrypoint
+    entrypoint=$(docker inspect "$CONTAINER_ID" -f '{{range .Config.Entrypoint}}{{.}} {{end}}' 2>/dev/null)
     if [ -n "$entrypoint" ]; then
         echo -e "${BLUE}entrypoint:${NC} $entrypoint"
     fi
 
-    local cmd=$(docker inspect "$CONTAINER_ID" -f '{{range .Config.Cmd}}{{.}} {{end}}' 2>/dev/null)
+    local cmd
+    cmd=$(docker inspect "$CONTAINER_ID" -f '{{range .Config.Cmd}}{{.}} {{end}}' 2>/dev/null)
     if [ -n "$cmd" ]; then
         echo -e "${BLUE}command:${NC} $cmd"
     fi
 
-    local env_output=$(docker inspect "$CONTAINER_ID" -f '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null)
+    local env_output
+    env_output=$(docker inspect "$CONTAINER_ID" -f '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null)
     if [ -n "$env_output" ]; then
         echo -e "${YELLOW}environment variables:${NC}"
         echo "$env_output"
     fi
 
-    local port_output=$(docker inspect "$CONTAINER_ID" -f '{{range $p, $conf := .NetworkSettings.Ports}}{{$p}} -> {{$conf}}{{println}}{{end}}' 2>/dev/null)
+    local port_output
+    port_output=$(docker inspect "$CONTAINER_ID" -f '{{range $p, $conf := .NetworkSettings.Ports}}{{$p}} -> {{$conf}}{{println}}{{end}}' 2>/dev/null)
     if [ -n "$port_output" ]; then
         echo -e "${YELLOW}port mapping:${NC}"
         echo "$port_output"
     fi
 
-    local mount_output=$(docker inspect "$CONTAINER_ID" -f '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}' 2>/dev/null)
+    local mount_output
+    mount_output=$(docker inspect "$CONTAINER_ID" -f '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}' 2>/dev/null)
     if [ -n "$mount_output" ]; then
         echo -e "${YELLOW}volume mounts:${NC}"
         echo "$mount_output"
     fi
 
-    echo ""
+    echo 
 }
 
 modify_container_config() {
@@ -1060,9 +1072,9 @@ modify_container_config() {
         echo "3) set auto-start"
         echo "4) return to previous menu"
         echo "q) exit"
-        echo ""
+        echo 
 
-        read -p "choose (1-4/q): " config_choice
+        read -r -p "choose (1-4/q): " config_choice
 
         if [ "$config_choice" = "q" ] || [ "$config_choice" = "Q" ]; then
             return 0
@@ -1070,18 +1082,18 @@ modify_container_config() {
 
         case $config_choice in
             1)
-                read -p "enter new container name: " new_container_name
+                read -r -p "enter new container name: " new_container_name
                 if [[ -z "$new_container_name" ]]; then
                     echo "container name cannot be empty"
-                    read -p "press enter to continue..."
+                    read -r -p "press enter to continue..."
                     continue
                 fi
                 if docker rename "$CONTAINER_ID" "$new_container_name"; then
                     echo -e "${GREEN}container renamed successfully${NC}"
-                    read -p "press enter to continue..."
+                    read -r -p "press enter to continue..."
                 else
                     echo -e "${RED}container rename failed${NC}"
-                    read -p "press enter to continue..."
+                    read -r -p "press enter to continue..."
                 fi
                 ;;
 
@@ -1090,9 +1102,9 @@ modify_container_config() {
                 echo "1) select existing network"
                 echo "2) create new network"
                 echo "q) return"
-                echo ""
+                echo 
 
-                read -p "choose (1-2/q): " network_mode_choice
+                read -r -p "choose (1-2/q): " network_mode_choice
 
                 if [ "$network_mode_choice" = "q" ] || [ "$network_mode_choice" = "Q" ]; then
                     continue
@@ -1107,13 +1119,13 @@ modify_container_config() {
                             new_network="$SELECTED_NETWORK_NAME"
                         else
                             echo "network selection cancelled"
-                            read -p "press enter to continue..."
+                            read -r -p "press enter to continue..."
                             continue
                         fi
                         ;;
                     2)
                         while true; do
-                            read -p "enter new network name: " new_network_name
+                            read -r -p "enter new network name: " new_network_name
                             if [[ -z "$new_network_name" ]]; then
                                 echo "network name cannot be empty"
                                 continue
@@ -1121,7 +1133,7 @@ modify_container_config() {
 
                             if check_network_exists "$new_network_name"; then
                                 echo -e "${RED}network name '$new_network_name' already exists${NC}"
-                                read -p "re-enter network name, press enter to continue..."
+                                read -r -p "re-enter network name, press enter to continue..."
                                 continue
                             fi
 
@@ -1136,9 +1148,9 @@ modify_container_config() {
                         echo "5) ipvlan"
                         echo "6) none"
                         echo "q) return"
-                        echo ""
+                        echo 
 
-                        read -p "choose (1-6/q): " driver_choice
+                        read -r -p "choose (1-6/q): " driver_choice
 
                         if [ "$driver_choice" = "q" ] || [ "$driver_choice" = "Q" ]; then
                             continue
@@ -1163,19 +1175,20 @@ modify_container_config() {
                             new_network="$new_network_name"
                         else
                             echo -e "${RED}network creation failed${NC}"
-                            read -p "press enter to continue..."
+                            read -r -p "press enter to continue..."
                             continue
                         fi
                         ;;
                     *)
-                        read -p "press enter to continue..."
+                        read -r -p "press enter to continue..."
                         continue
                         ;;
                 esac
 
                 if [[ -n "$new_network" ]]; then
                     if stop_container; then
-                        local current_networks=$(docker inspect "$CONTAINER_ID" -f '{{range $net, $config := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null)
+                        local current_networks
+                        current_networks=$(docker inspect "$CONTAINER_ID" -f '{{range $net, $config := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null)
                         for net in $current_networks; do
                             docker network disconnect "$net" "$CONTAINER_ID" 2>/dev/null
                         done
@@ -1188,11 +1201,11 @@ modify_container_config() {
                         fi
                     fi
                 fi
-                read -p "press enter to continue..."
+                read -r -p "press enter to continue..."
                 ;;
 
             3)
-                read -p "set auto-start? (Y/n): " auto_restart
+                read -r -p "set auto-start? (Y/n): " auto_restart
                 if [ "$auto_restart" = "n" ] || [ "$auto_restart" = "N" ]; then
                     if docker update --restart=no "$CONTAINER_ID"; then
                         echo -e "${GREEN}auto-start cancelled${NC}"
@@ -1206,14 +1219,14 @@ modify_container_config() {
                         echo -e "${RED}failed to set auto-start${NC}"
                     fi
                 fi
-                read -p "press enter to continue..."
+                read -r -p "press enter to continue..."
                 ;;
             4)
                 return 0
                 ;;
             *)
                 echo "invalid choice, please try again"
-                read -p "press enter to continue..."
+                read -r -p "press enter to continue..."
                 ;;
         esac
     done
@@ -1226,7 +1239,7 @@ install_container() {
 
     local full_image_name=""
     while [[ -z "$full_image_name" ]]; do
-        read -p "enter complete image name (e.g. openspeedtest/latest) (q to return): " full_image_name
+        read -r -p "enter complete image name (e.g. openspeedtest/latest) (q to return): " full_image_name
         if [ "$full_image_name" = "q" ] || [ "$full_image_name" = "Q" ]; then
             return 1
         fi
@@ -1238,23 +1251,23 @@ install_container() {
     echo -e "${GREEN}pulling image: $full_image_name${NC}"
     if ! docker pull "$full_image_name"; then
         echo -e "${RED}image pull failed${NC}"
-        read -p "press enter to continue..."
+        read -r -p "press enter to continue..."
         install_container
         return 0
     fi
 
     echo
-    read -p "enter container name (leave empty for auto-generation): " container_name
+    read -r -p "enter container name (leave empty for auto-generation): " container_name
     local name_option=""
     if [[ -n "$container_name" ]]; then
         if [[ "$container_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]]; then
             if docker ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
                 echo -e "${RED}container name '$container_name' already exists${NC}"
                 while true; do
-                    read -p "choose action: 1) re-enter name 2) use auto-generated name 3) exit (1/2/3): " name_choice
+                    read -r -p "choose action: 1) re-enter name 2) use auto-generated name 3) exit (1/2/3): " name_choice
                     case "$name_choice" in
                         1)
-                            read -p "enter new container name: " container_name
+                            read -r -p "enter new container name: " container_name
                             if [[ -n "$container_name" ]] && [[ "$container_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]]; then
                                 if docker ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
                                     echo -e "${RED}container name '$container_name' still exists${NC}"
@@ -1286,7 +1299,7 @@ install_container() {
             fi
         else
             echo -e "${RED}container name '$container_name' does not follow docker naming rules${NC}"
-            read -p "use auto-generated name? (Y/q): " use_auto_name
+            read -r -p "use auto-generated name? (Y/q): " use_auto_name
             if [[ "$use_auto_name" = "q" && "$use_auto_name" != "Q" ]]; then
                 return 1
             fi
@@ -1295,7 +1308,7 @@ install_container() {
 
     echo
     local env_options=""
-    read -p "need to configure environment variables? (y/N): " need_env
+    read -r -p "need to configure environment variables? (y/N): " need_env
     if [ "$need_env" = "y" ] || [ "$need_env" = "Y" ]; then
         echo "configure environment variables (key=value format)"
         echo "examples:"
@@ -1303,7 +1316,7 @@ install_container() {
         echo " HY2_AUTH=f4beaf21"
         echo
         while true; do
-            read -p "enter environment variable: " env_var
+            read -r -p "enter environment variable: " env_var
             if [[ -z "$env_var" ]]; then
                 echo -e "${RED}environment variable cannot be empty, please re-enter${NC}"
                 continue
@@ -1318,7 +1331,7 @@ install_container() {
                 echo -e "${GREEN}added environment variable: $env_var${NC}"
                 
                 while true; do
-                    read -p "need to add more environment variables? (y/n): " more_env
+                    read -r -p "need to add more environment variables? (y/n): " more_env
                     case "$more_env" in
                         Y|y) break ;;
                         N|n) break 2 ;;
@@ -1337,30 +1350,30 @@ install_container() {
 
     echo
     local entrypoint_option=""
-    read -p "modify container entrypoint? (y/N): " modify_entrypoint
+    read -r -p "modify container entrypoint? (y/N): " modify_entrypoint
     if [ "$modify_entrypoint" = "y" ] || [ "$modify_entrypoint" = "Y" ]; then
-        read -p "enter new entrypoint command (e.g. /bin/bash or python): " new_entrypoint
+        read -r -p "enter new entrypoint command (e.g. /bin/bash or python): " new_entrypoint
         [ -n "$new_entrypoint" ] && entrypoint_option="--entrypoint $new_entrypoint"
     fi
 
     echo
     local cmd_option=""
-    read -p "modify container cmd? (y/N): " modify_cmd
+    read -r -p "modify container cmd? (y/N): " modify_cmd
     if [ "$modify_cmd" = "y" ] || [ "$modify_cmd" = "Y" ]; then
-        read -p "enter new cmd command (e.g. -c 'echo hello' or /start.sh): " new_cmd
+        read -r -p "enter new cmd command (e.g. -c 'echo hello' or /start.sh): " new_cmd
         [ -n "$new_cmd" ] && cmd_option="$new_cmd"
     fi
 
     echo
     local tty_option="-t"
-    read -p "disable tty? (y/N): " disable_tty
+    read -r -p "disable tty? (y/N): " disable_tty
     if [ "$disable_tty" = "y" ] || [ "$disable_tty" = "Y" ]; then
         tty_option=""
     fi
 
     echo
     local restart_option="--restart=always"
-    read -p "set container auto-start? (Y/n): " auto_restart
+    read -r -p "set container auto-start? (Y/n): " auto_restart
     if [ "$auto_restart" = "n" ] || [ "$auto_restart" = "N" ]; then
         restart_option=""
     fi
@@ -1368,14 +1381,14 @@ install_container() {
     echo
     local network_option=""
     local selected_network_driver="bridge"
-    read -p "need to configure network? (y/N): " need_network
+    read -r -p "need to configure network? (y/N): " need_network
     if [ "$need_network" = "y" ] || [ "$need_network" = "Y" ]; then
         echo "choose network mode: "
         echo "1) select existing network"
         echo "2) create new network"
         echo "q) skip network configuration"
         echo
-        read -p "choose (1-2/q): " network_mode_choice
+        read -r -p "choose (1-2/q): " network_mode_choice
 
         if [[ "$network_mode_choice" != "q" && "$network_mode_choice" != "Q" ]]; then
             case $network_mode_choice in
@@ -1390,14 +1403,14 @@ install_container() {
                     ;;
                 2)
                     while true; do
-                        read -p "enter new network name: " new_network_name
+                        read -r -p "enter new network name: " new_network_name
                         if [[ -z "$new_network_name" ]]; then
                             echo "network name cannot be empty"
                             continue
                         fi
                         if check_network_exists "$new_network_name"; then
                             echo -e "${RED}network name '$new_network_name' already exists${NC}"
-                            read -p "re-enter network name, press enter to continue..."
+                            read -r -p "re-enter network name, press enter to continue..."
                             continue
                         fi
                         break
@@ -1412,9 +1425,9 @@ install_container() {
                         echo "5) ipvlan"
                         echo "6) none"
                         echo "q) return"
-                        echo ""
+                        echo 
 
-                        read -p "choose (1-6/q): " driver_choice
+                        read -r -p "choose (1-6/q): " driver_choice
 
                         if [[ "$driver_choice" != "q" && "$driver_choice" != "Q" ]]; then
                             case $driver_choice in
@@ -1459,7 +1472,7 @@ install_container() {
 
         while true; do
             while true; do
-                read -p "enter host port: " host_port
+                read -r -p "enter host port: " host_port
                 if [[ -z "$host_port" ]]; then
                     echo -e "${RED}host port cannot be empty, please re-enter${NC}"
                     continue
@@ -1472,7 +1485,7 @@ install_container() {
             done
 
             while true; do
-                read -p "enter container port: " container_port
+                read -r -p "enter container port: " container_port
                 if [[ -z "$container_port" ]]; then
                     echo -e "${RED}container port cannot be empty, please re-enter${NC}"
                     continue
@@ -1493,7 +1506,7 @@ install_container() {
             echo -e "${GREEN}added port mapping: $host_port:$container_port${NC}"
 
             while true; do
-                read -p "need to map more ports? (y/n): " more_ports
+                read -r -p "need to map more ports? (y/n): " more_ports
                 case "$more_ports" in
                     Y|y) break ;;
                     N|n) break 2 ;;
@@ -1509,11 +1522,11 @@ install_container() {
 
     echo
     local volume_options=""
-    read -p "need to configure mount points? (y/N): " need_volumes
+    read -r -p "need to configure mount points? (y/N): " need_volumes
     if [ "$need_volumes" = "y" ] || [ "$need_volumes" = "Y" ]; then
         echo "configure bind mounts (host directory -> container directory)"
         while true; do
-            read -p "enter host directory path (absolute path): " host_path
+            read -r -p "enter host directory path (absolute path): " host_path
             if [[ -z "$host_path" ]] || [[ ! "$host_path" =~ ^/[a-zA-Z0-9._/-]+$ ]]; then
                 echo -e "${RED}host path error${NC}"
                 continue
@@ -1528,7 +1541,7 @@ install_container() {
                 fi
             fi
 
-            read -p "enter container directory path: " container_path
+            read -r -p "enter container directory path: " container_path
             if [[ -z "$container_path" ]] || [[ ! "$container_path" =~ ^/[a-zA-Z0-9._/-]+$ ]]; then
                 echo -e "${RED}container path error${NC}"
                 continue
@@ -1543,7 +1556,7 @@ install_container() {
             echo -e "${GREEN}added bind mount: $host_path -> $container_path${NC}"
 
             while true; do
-                read -p "need to add more mount points? (y/n): " more_volumes
+                read -r -p "need to add more mount points? (y/n): " more_volumes
                 case "$more_volumes" in
                     Y|y) break ;;
                     N|n) break 2 ;;
@@ -1566,7 +1579,7 @@ install_container() {
     else
         CONTAINER_ID="$container_id_tmp"
         echo -e "${GREEN}container installation completed${NC}"
-        read -p "press enter to continue..."
+        read -r -p "press enter to continue..."
     fi
 } 
 
@@ -1578,7 +1591,8 @@ clear_container_logs() {
         return 1
     fi
 
-    local log_path=$(docker inspect --format='{{.LogPath}}' "$CONTAINER_ID" 2>/dev/null)
+    local log_path
+    log_path=$(docker inspect --format='{{.LogPath}}' "$CONTAINER_ID" 2>/dev/null)
 
     if [[ -z "$log_path" ]]; then
         echo -e "${RED}cannot get log path for container $CONTAINER_ID${NC}"
@@ -1606,9 +1620,12 @@ show_main_menu() {
     echo
 
     if [[ -n "$CONTAINER_ID" ]] && docker inspect "$CONTAINER_ID" >/dev/null 2>&1; then
-        local container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo "unknown")
-        local container_image=$(docker inspect "$CONTAINER_ID" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
-        local container_status=$(get_container_status "$CONTAINER_ID")
+        local container_name
+        container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo "unknown")
+        local container_image
+        container_image=$(docker inspect "$CONTAINER_ID" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
+        local container_status
+        container_status=$(get_container_status "$CONTAINER_ID")
 
         local status_display
         if [ "$container_status" = "running" ]; then
@@ -1646,9 +1663,12 @@ show_log_menu() {
     echo
 
     if [[ -n "$CONTAINER_ID" ]] && docker inspect "$CONTAINER_ID" >/dev/null 2>&1; then
-        local container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo "unknown")
-        local container_image=$(docker inspect "$CONTAINER_ID" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
-        local container_status=$(get_container_status "$CONTAINER_ID")
+        local container_name
+        container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo "unknown")
+        local container_image
+        container_image=$(docker inspect "$CONTAINER_ID" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
+        local container_status
+        container_status=$(get_container_status "$CONTAINER_ID")
 
         local status_display
         if [ "$container_status" = "running" ]; then
@@ -1669,8 +1689,8 @@ show_log_menu() {
     echo "1) view last 50 lines of logs"
     echo "2) view all logs"
     echo "3) real-time log tracking"
-    echo "4) clear logs"
-    echo "5) select container"
+    echo "4) select container"
+    echo "5) clear logs"
     echo "6) return to main menu"
     echo "q) exit program"
 }
@@ -1687,13 +1707,13 @@ main() {
         else
             show_main_menu
         fi
-        read -p "choose operation (1-9/p/c/q): " access_mode
+        read -r -p "choose operation (1-9/p/c/q): " access_mode
 
     case $access_mode in
         1)
             clear
             show_log_menu
-            read -p "choose log operation (1-6/q): " log_choice
+            read -r -p "choose log operation (1-6/q): " log_choice
 
             case $log_choice in
                 1)
@@ -1702,9 +1722,9 @@ main() {
                     echo "showing last 50 lines of logs..."
                     echo "=========================================="
                     docker logs --tail 50 "$CONTAINER_ID"
-                    echo ""
+                    echo 
                     echo "=========================================="
-                    read -p "press enter to return..."
+                    read -r -p "press enter to return..."
                     show_container=false
                     continue
                     ;;
@@ -1714,9 +1734,9 @@ main() {
                     echo "showing all logs..."
                     echo "=========================================="
                     docker logs "$CONTAINER_ID"
-                    echo ""
+                    echo 
                     echo "=========================================="
-                    read -p "press enter to return..."
+                    read -r -p "press enter to return..."
                     show_container=false
                     continue
                     ;;
@@ -1726,19 +1746,19 @@ main() {
                     echo "real-time log tracking, press ctrl+c to stop..."
                     echo "=========================================="
                     docker logs -f "$CONTAINER_ID"
-                    echo ""
+                    echo 
                     echo "=========================================="
-                    read -p "press enter to return..."
+                    read -r -p "press enter to return..."
                     show_container=false
                     continue
                     ;;
                 4)
-                    clear_container_logs
-                    show_container=false
-                    continue
+                    show_container=true
+                    return
                     ;;
                 5)
-                    show_container=true
+                    clear_container_logs
+                    show_container=false
                     continue
                     ;;
                 6)
@@ -1835,7 +1855,7 @@ main() {
             ;;
         9)
             show_container_config
-            read -p "confirm delete container? this operation cannot be undone! (y/N): " confirm
+            read -r -p "confirm delete container? this operation cannot be undone! (y/N): " confirm
             if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
                 if ! stop_container; then
                     echo "failed to stop container"
@@ -1848,7 +1868,7 @@ main() {
                     echo -e "${RED}container deletion failed${NC}"
                 fi
             fi
-            read -p "press enter to return to main menu..."
+            read -r -p "press enter to return to main menu..."
             show_container=false
             continue
             ;;
