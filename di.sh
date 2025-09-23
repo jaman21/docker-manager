@@ -12,6 +12,34 @@ else
     exit
 fi
 
+function output_command_help() {
+    echo "Docker CE Installation Script - Command Options:"
+    echo "================================================"
+    echo
+    echo "Network Configuration:"
+    echo "  --source <address>              Docker CE mirror host (domain or IP)"
+    echo "  --source-registry <address>     Docker registry mirror (domain or IP)"
+    echo "  --protocol <http|https>         Protocol for Docker CE mirror"
+    echo "  --use-intranet-source <bool>    Prefer intranet mirror if available"
+    echo
+    echo "Installation Options:"
+    echo "  --branch <name>                 Docker CE repo branch/path"
+    echo "  --codename <name>               Debian-based distro codename"
+    echo "  --designated-version <ver>      Specific Docker CE version to install"
+    echo "  --install-latest <bool>         Install the latest Docker Engine"
+    echo "  --data-root <path>              Set Docker image/data root directory"
+    echo
+    echo "System Configuration:"
+    echo "  --close-firewall <bool>         Disable firewall and SELinux"
+    echo "  --clean-screen <bool>           Clear screen before running"
+    echo
+    echo "Mode Options:"
+    echo "  --only-registry                 Only change registry mirror mode"
+    echo "  --ignore-backup-tips            Ignore overwrite-backup prompt"
+    echo "  --pure-mode                     Minimal output mode"
+    echo
+}
+
 mirror_list_docker_ce=(
     "Aliyun@mirrors.aliyun.com/docker-ce"
     "Tencent Cloud@mirrors.tencent.com/docker-ce"
@@ -78,35 +106,23 @@ mirror_list_intranet=(
 
 SYSTEM_DEBIAN="Debian"
 SYSTEM_UBUNTU="Ubuntu"
-SYSTEM_KALI="Kali"
-SYSTEM_DEEPIN="Deepin"
-SYSTEM_LINUX_MINT="Linuxmint"
 SYSTEM_ZORIN="Zorin"
 SYSTEM_RASPBERRY_PI_OS="Raspberry Pi OS"
 SYSTEM_REDHAT="RedHat"
 SYSTEM_RHEL="Red Hat Enterprise Linux"
-SYSTEM_CENTOS="CentOS"
 SYSTEM_CENTOS_STREAM="CentOS Stream"
 SYSTEM_ROCKY="Rocky"
 SYSTEM_ALMALINUX="AlmaLinux"
 SYSTEM_FEDORA="Fedora"
 SYSTEM_ORACLE="Oracle Linux"
 SYSTEM_OPENCLOUDOS="OpenCloudOS"
-SYSTEM_OPENCLOUDOS_STREAM="OpenCloudOS Stream"
 SYSTEM_TENCENTOS="TencentOS"
 SYSTEM_OPENEULER="openEuler"
 SYSTEM_ANOLISOS="Anolis"
-SYSTEM_OPENKYLIN="openKylin"
-SYSTEM_OPENSUSE="openSUSE"
-SYSTEM_ARCH="Arch"
-SYSTEM_ALPINE="Alpine"
-SYSTEM_GENTOO="Gentoo"
-SYSTEM_NIXOS="NixOS"
 
 File_LinuxRelease=/etc/os-release
 File_RedHatRelease=/etc/redhat-release
 File_DebianVersion=/etc/debian_version
-File_ArmbianRelease=/etc/armbian-release
 File_RaspberryPiOSRelease=/etc/rpi-issue
 File_openEulerRelease=/etc/openEuler-release
 File_HuaweiCloudEulerOSRelease=/etc/hce-release
@@ -116,8 +132,6 @@ File_AnolisOSRelease=/etc/anolis-release
 File_AlibabaCloudLinuxRelease=/etc/alinux-release
 File_OracleLinuxRelease=/etc/oracle-release
 File_ArchLinuxRelease=/etc/arch-release
-File_ManjaroRelease=/etc/manjaro-release
-File_AlpineRelease=/etc/alpine-release
 File_GentooRelease=/etc/gentoo-release
 File_openKylinVersion=/etc/kylin-version/kylin-system-version.conf
 
@@ -136,13 +150,9 @@ File_DockerRepo=$Dir_YumRepos/docker-ce.repo
 
 RED='\033[31m'
 GREEN='\033[32m'
-YELLOW='\033[33m'
 BLUE='\033[34m'
-PURPLE='\033[35m'
-AZURE='\033[36m'
 PLAIN='\033[0m'
 BOLD='\033[1m'
-SUCCESS="\033[1;32m[OK]${PLAIN}"
 COMPLETE="\033[1;32m[OK]${PLAIN}"
 WARN="\033[1;43m WARNING ${PLAIN}"
 ERROR="\033[1;31m[ERROR]${PLAIN}"
@@ -170,30 +180,9 @@ function main() {
 }
 
 function handle_command_options() {
-    function output_command_help() {
-        echo -e "
-Command options (name/meaning/value):
-
-  --source                 Specify Docker CE mirror host (domain or IP)           Address
-  --source-registry        Specify Docker registry mirror (domain or IP)          Address
-  --branch                 Specify Docker CE repo branch/path                     Repo name
-  --codename               Specify Debian-based distro codename                   Codename
-  --designated-version     Specify Docker CE version to install                   Version
-  --protocol               Specify protocol for Docker CE mirror                  http or https
-  --use-intranet-source    Prefer intranet Docker CE mirror if applicable         true or false
-  --install-latest         Install the latest Docker Engine                        true or false
-  --close-firewall         Disable firewall and SELinux                           true or false
-  --clean-screen           Clear screen before running                            true or false
-  --only-registry          Only change registry mirror mode                       No value
-  --ignore-backup-tips     Ignore overwrite-backup prompt                         No value
-  --pure-mode              Minimal output mode                                     No value
-  --data-root              Set Docker image/data root directory                    Path
-"
-}
-
     while [ $# -gt 0 ]; do
         case "$1" in
-        
+
         --source)
             if [ "$2" ]; then
                 if echo "$2" | grep -Eq "\(|\)|\[|\]|\{|\}"; then
@@ -206,7 +195,7 @@ Command options (name/meaning/value):
                 command_error "$1" "software source address"
             fi
             ;;
-        
+
         --source-registry)
             if [ "$2" ]; then
                 if echo "$2" | grep -Eq "\(|\)|\[|\]|\{|\}"; then
@@ -219,7 +208,7 @@ Command options (name/meaning/value):
                 command_error "$1" "repository address"
             fi
             ;;
-        
+
         --branch)
             if [ "$2" ]; then
                 SOURCE_BRANCH="$2"
@@ -228,7 +217,7 @@ Command options (name/meaning/value):
                 command_error "$1" "software source repository"
             fi
             ;;
-        
+
         --codename)
             if [ "$2" ]; then
                 DEBIAN_CODENAME="$2"
@@ -237,7 +226,7 @@ Command options (name/meaning/value):
                 command_error "$1" "version codename"
             fi
             ;;
-        
+
         --designated-version)
             if [ "$2" ]; then
                 if echo "$2" | grep -Eq "^[0-9][0-9].[0-9]{1,2}.[0-9]{1,2}$"; then
@@ -250,7 +239,7 @@ Command options (name/meaning/value):
                 command_error "$1" "version number"
             fi
             ;;
-        
+
         --protocol)
             if [ "$2" ]; then
                 case "$2" in
@@ -266,7 +255,7 @@ Command options (name/meaning/value):
                 command_error "$1" " WEB protocol (http/https) "
             fi
             ;;
-        
+
         --use-intranet-source)
             if [ "$2" ]; then
                 case "$2" in
@@ -348,7 +337,7 @@ Command options (name/meaning/value):
                 command_error "$1" "directory path"
             fi
             ;;
-        
+
         --help)
             output_command_help
             exit
@@ -380,7 +369,7 @@ function run_start() {
 
 function run_end() {
     if [[ "${PURE_MODE}" == "true" ]]; then
-        echo 
+        echo
         return
     fi
 }
@@ -427,9 +416,6 @@ function collect_system_info() {
     ## Define system version number
     SYSTEM_VERSION_ID="$(cat $File_LinuxRelease | grep -E "^VERSION_ID=" | awk -F '=' '{print$2}' | sed "s/[\'\"]//g")"
     SYSTEM_VERSION_ID_MAJOR="${SYSTEM_VERSION_ID%.*}"
-    SYSTEM_VERSION_ID_MINOR="${SYSTEM_VERSION_ID#*.}"
-    ## Define system ID
-    SYSTEM_ID="$(cat $File_LinuxRelease | grep -E "^ID=" | awk -F '=' '{print$2}' | sed "s/[\'\"]//g")"
     ## Determine current system faction
     if [ -s "${File_DebianVersion}" ]; then
         SYSTEM_FACTIONS="${SYSTEM_DEBIAN}"
@@ -590,10 +576,10 @@ function collect_system_info() {
 }
 
 function choose_mirrors() {
-    
+
     function print_mirrors_list() {
         local tmp_mirror_name arr_num default_mirror_name_length a i
-        echo 
+        echo
 
         local list_arr=()
         local -n ref="$1"
@@ -631,7 +617,7 @@ function choose_mirrors() {
         done
         if [[ -z "${USE_INTRANET_SOURCE}" ]]; then
             if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
-                echo 
+                echo
                 interactive_select_boolean "${BOLD}${ask_text}${PLAIN}"
                 if [[ "${_SELECT_RESULT}" == "false" ]]; then
                     SOURCE="${intranet_source}"
@@ -661,11 +647,11 @@ function choose_mirrors() {
     function print_title() {
         local system_name="${SYSTEM_PRETTY_NAME:-"${SYSTEM_NAME} ${SYSTEM_VERSION_ID}"}"
         local arch="${DEVICE_ARCH}"
-        local date_time time_zone
+        local date_time timezone
         date_time="$(date "+%Y-%m-%d %H:%M")"
         timezone="$(timedatectl status 2>/dev/null | grep "Time zone" | awk -F ':' '{print$2}' | awk -F ' ' '{print$1}')"
 
-        echo 
+        echo
         echo -e "Environment ${BLUE}${system_name} ${arch}${PLAIN}"
         echo -e "System time ${BLUE}${date_time} ${timezone}${PLAIN}"
     }
@@ -677,7 +663,7 @@ function choose_mirrors() {
         mirror_list_name="mirror_list_docker_ce"
         if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
             sleep 1 >/dev/null 2>&1
-            eval "interactive_select_mirror \"\${${mirror_list_name}[@]}\" \"\\n \${BOLD}Please select the Docker CE mirror you want to use:\${PLAIN}\\n\""
+            interactive_select_mirror "${mirror_list_docker_ce[@]}" "\n ${BOLD}Please select the Docker CE mirror you want to use:${PLAIN}\n"
             SOURCE="${_SELECT_RESULT#*@}"
             echo -e "\n* ${BOLD}Docker CE: ${_SELECT_RESULT%@*}${PLAIN}"
         else
@@ -714,7 +700,7 @@ function choose_mirrors() {
         mirror_list_name="mirror_list_registry"
         if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
             sleep 1 >/dev/null 2>&1
-            eval "interactive_select_mirror \"\${${mirror_list_name}[@]}\" \"\\n \${BOLD}Please select the Docker Registry source you want to use:\${PLAIN}\\n\""
+            interactive_select_mirror "${mirror_list_registry[@]}" "\n ${BOLD}Please select the Docker Registry source you want to use:${PLAIN}\n"
             SOURCE_REGISTRY="${_SELECT_RESULT#*@}"
             echo -e "\n* ${BOLD}Docker Registry: ${_SELECT_RESULT%@*}${PLAIN}"
         else
@@ -751,7 +737,7 @@ function choose_protocol() {
         else
             local ask_text="Use HTTP protocol for the mirror?"
             if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
-                echo 
+                echo
                 interactive_select_boolean "${BOLD}${ask_text}${PLAIN}"
                 if [[ "${_SELECT_RESULT}" == "true" ]]; then
                     WEB_PROTOCOL="http"
@@ -789,7 +775,7 @@ function close_firewall_service() {
         if [[ -z "${CLOSE_FIREWALL}" ]]; then
             local ask_text="Do you want to disable the system firewall and SELinux?"
             if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
-                echo 
+                echo
                 interactive_select_boolean "${BOLD}${ask_text}${PLAIN}"
                 if [[ "${_SELECT_RESULT}" == "true" ]]; then
                     CLOSE_FIREWALL="true"
@@ -820,7 +806,7 @@ function close_firewall_service() {
 
 function install_dependency_packages() {
     local commands package_manager
-    
+
     case "${SYSTEM_FACTIONS}" in
     "${SYSTEM_DEBIAN}")
         sed -i '/docker-ce/d' $File_AptSourceList
@@ -830,7 +816,7 @@ function install_dependency_packages() {
         rm -rf $Dir_YumRepos/*docker*.repo
         ;;
     esac
-    
+
     commands=()
     case "${SYSTEM_FACTIONS}" in
     "${SYSTEM_DEBIAN}")
@@ -851,12 +837,12 @@ function install_dependency_packages() {
                 exec_cmd="${exec_cmd} ; ${cmd}"
             fi
         done
-        echo 
+        echo
         animate_exec "${exec_cmd}" "${SYNC_MIRROR_TEXT}"
     else
         echo -e "\n$WORKING ${SYNC_MIRROR_TEXT}...\n"
         { for cmd in "${commands[@]}"; do
-            eval "${cmd}"
+            $cmd
         done; } || output_error "${SYNC_MIRROR_TEXT} failed. Please fix existing repository errors to ensure ${BLUE}${package_manager}${PLAIN} is available!"
         echo -e "\n$COMPLETE ${SYNC_MIRROR_TEXT} completed\n"
     fi
@@ -891,11 +877,11 @@ function install_dependency_packages() {
                 exec_cmd="${exec_cmd} ; ${cmd}"
             fi
         done
-        echo 
+        echo
         animate_exec "${exec_cmd}" "Install dependency packages"
     else
         for cmd in "${commands[@]}"; do
-            eval "${cmd}"
+            $cmd
         done
     fi
 }
@@ -1008,7 +994,7 @@ function configure_docker_ce_mirror() {
         fi
         ;;
     esac
-    echo 
+    echo
     if [[ "${PURE_MODE}" == "true" ]]; then
         local exec_cmd=""
         for cmd in "${commands[@]}"; do
@@ -1021,13 +1007,13 @@ function configure_docker_ce_mirror() {
         animate_exec "${exec_cmd}" "${SYNC_MIRROR_TEXT}"
     else
         for cmd in "${commands[@]}"; do
-            eval "${cmd}"
+            $cmd
         done
     fi
 }
 
 function install_docker_engine() {
-    
+
     function export_version_list() {
         case "${SYSTEM_FACTIONS}" in
         "${SYSTEM_DEBIAN}")
@@ -1048,11 +1034,11 @@ function install_docker_engine() {
 
     function uninstall_original_version() {
         if command_exists docker; then
-            
+
             systemctl disable --now docker >/dev/null 2>&1
             sleep 2s
         fi
-        
+
         local package_list
         case "${SYSTEM_FACTIONS}" in
         "${SYSTEM_DEBIAN}")
@@ -1062,7 +1048,7 @@ function install_docker_engine() {
             package_list='docker* podman podman-docker runc'
             ;;
         esac
-        
+
         case "${SYSTEM_FACTIONS}" in
         "${SYSTEM_DEBIAN}")
             apt-get remove -y "$package_list" >/dev/null 2>&1
@@ -1099,8 +1085,7 @@ function install_docker_engine() {
                 if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
                     local version_list=()
                     mapfile -t version_list < <(cat "$File_DockerVersionTmp" | sort -t '.' -k1,1nr -k2,2nr -k3,3nr)
-                    local mirror_list_name="version_list"
-                    eval "interactive_select_mirror \"\${${mirror_list_name}[@]}\" \"\\n \${BOLD}Please select the version you want to install:\${PLAIN}\\n\""
+                    interactive_select_mirror "${version_list[@]}" "\n ${BOLD}Please select the version you want to install:${PLAIN}\n"
                     target_docker_version="${_SELECT_RESULT}"
                     echo -e "\n* ${BOLD}Specified install version: ${target_docker_version}${PLAIN}\n"
                 else
@@ -1110,7 +1095,7 @@ function install_docker_engine() {
                         local CHOICE
                         CHOICE=$(echo -e "\n${BOLD}> Please choose and enter the exact version number you want to install from the list above:${PLAIN}\n")
                         read -r -p "${CHOICE}" target_docker_version
-                        echo 
+                        echo
                         if grep -Eqw "${target_docker_version}" "$File_DockerVersionTmp"; then
                             if echo "${target_docker_version}" | grep -Eqw '[0-9][0-9]\.[0-9]{1,2}\.[0-9]{1,2}'; then
                                 break
@@ -1174,7 +1159,7 @@ function install_docker_engine() {
             animate_exec "${exec_cmd}" "Install Docker Engine"
         else
             { for cmd in "${commands[@]}"; do
-                eval "${cmd}"
+                $cmd
             done; } || output_error "Failed to install Docker Engine!"
         fi
     }
@@ -1183,7 +1168,7 @@ function install_docker_engine() {
     if [[ -z "${INSTALL_LATESTED_DOCKER}" ]]; then
         local ask_text="Install the latest version of Docker Engine?"
         if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
-            echo 
+            echo
             interactive_select_boolean "${BOLD}${ask_text}${PLAIN}"
             if [[ "${_SELECT_RESULT}" == "true" ]]; then
                 INSTALL_LATESTED_DOCKER="true"
@@ -1208,7 +1193,7 @@ function install_docker_engine() {
                 ;;
             esac
         fi
-        echo 
+        echo
     fi
 
     ## Determine if already installed
@@ -1239,16 +1224,16 @@ function install_docker_engine() {
     fi
 }
 
-function change_docker_registry_mirror() {    
+function change_docker_registry_mirror() {
     if [[ "${SOURCE_REGISTRY}" == "registry.hub.docker.com" ]]; then
         if [ -s "${File_DockerConfig}" ]; then
-            
+
             local package_manager
             package_manager="$(get_package_manager)"
             $package_manager install -y jq
             if command_exists jq; then
                 jq 'del(.["registry-mirrors"])' $File_DockerConfig >$File_DockerConfig.tmp && mv $File_DockerConfig.tmp $File_DockerConfig
-                
+
                 systemctl daemon-reload
                 if [[ "$(systemctl is-active docker 2>/dev/null)" == "active" ]]; then
                     systemctl restart docker
@@ -1259,16 +1244,16 @@ function change_docker_registry_mirror() {
         fi
         return
     fi
-    
+
     if [ -d "${Dir_Docker}" ] && [ -e "${File_DockerConfig}" ]; then
         if [ -e "${File_DockerConfigBackup}" ]; then
             if [[ "${IGNORE_BACKUP_TIPS}" == "false" ]]; then
                 local ask_text="A backup of Docker config was detected. Skip overwriting the backup?"
                 if [[ "${CAN_USE_ADVANCED_INTERACTIVE_SELECTION}" == "true" ]]; then
-                    echo 
+                    echo
                     interactive_select_boolean "${BOLD}${ask_text}${PLAIN}"
                     if [[ "${_SELECT_RESULT}" == "false" ]]; then
-                        echo 
+                        echo
                         cp -rvf $File_DockerConfig $File_DockerConfigBackup 2>&1
                     fi
                 else
@@ -1279,7 +1264,7 @@ function change_docker_registry_mirror() {
                     case $INPUT in
                     [Yy] | [Yy][Ee][Ss]) ;;
                     [Nn] | [Nn][Oo])
-                        echo 
+                        echo
                         cp -rvf $File_DockerConfig $File_DockerConfigBackup 2>&1
                         ;;
                     *)
@@ -1289,7 +1274,7 @@ function change_docker_registry_mirror() {
                 fi
             fi
         else
-            echo 
+            echo
             cp -rvf $File_DockerConfig $File_DockerConfigBackup 2>&1
             echo -e "\n$COMPLETE Backed up existing Docker configuration"
         fi
@@ -1300,20 +1285,20 @@ function change_docker_registry_mirror() {
     fi
 
     if [[ -n "${DOCKER_DATA_ROOT}" ]]; then
-        cat > "$File_DockerConfig" <<EOF
+        cat >"$File_DockerConfig" <<EOF
 {
   "registry-mirrors": ["https://${SOURCE_REGISTRY}"],
   "data-root": "${DOCKER_DATA_ROOT}"
 }
 EOF
     else
-        cat > "$File_DockerConfig" <<EOF
+        cat >"$File_DockerConfig" <<EOF
 {
   "registry-mirrors": ["https://${SOURCE_REGISTRY}"]
 }
 EOF
     fi
-    
+
     systemctl daemon-reload
     if [[ "$(systemctl is-active docker 2>/dev/null)" == "active" ]]; then
         systemctl restart docker
@@ -1363,12 +1348,12 @@ function only_change_docker_registry_mirror() {
                         exec_cmd="${exec_cmd} ; ${cmd}"
                     fi
                 done
-                echo 
+                echo
                 animate_exec "${exec_cmd}" "${SYNC_MIRROR_TEXT}"
             else
                 echo -e "\n$WORKING ${SYNC_MIRROR_TEXT}...\n"
                 for cmd in "${commands[@]}"; do
-                    eval "${cmd}"
+                    $cmd
                 done
                 echo -e "\n$COMPLETE ${SYNC_MIRROR_TEXT} completed\n"
             fi
@@ -1403,7 +1388,7 @@ function check_installed_result() {
         systemctl enable --now docker >/dev/null 2>&1
         if docker -v; then
             echo -e "$(docker compose version 2>&1)"
-            
+
         else
             echo -e "\n$FAIL Installation failed"
             local source_file package_manager
@@ -1469,8 +1454,6 @@ function interactive_select_mirror() {
     local selected=0
     local start=0
     local page_size=$(($(tput lines 2>/dev/null) - 3))
-    # precompute lines to clear for cleanup
-    local lines_to_clear=$(( ${#options[@]} + 1 ))
     function draw_menu() {
         tput clear 2>/dev/null
         tput cup 0 0 2>/dev/null
@@ -1497,7 +1480,7 @@ function interactive_select_mirror() {
     tput smcup 2>/dev/null
     tput sc 2>/dev/null
     tput civis 2>/dev/null
-    trap 'tput rc 2>/dev/null; for ((i=0; i<lines_to_clear; i++)); do echo -e "\r\033[K"; done; tput rc 2>/dev/null; tput cnorm 2>/dev/null; tput rmcup 2>/dev/null; echo -e "\n[INFO] Operation canceled\n"; exit 130' INT TERM
+    trap 'tput rc 2>/dev/null; for ((i=0; i<$((${#options[@]} + 1)); i++)); do echo -e "\r\033[K"; done; tput rc 2>/dev/null; tput cnorm 2>/dev/null; tput rmcup 2>/dev/null; echo -e "\n[INFO] Operation canceled\n"; exit 130' INT TERM
     draw_menu
     while true; do
         key=$(read_key)
@@ -1536,10 +1519,6 @@ function interactive_select_boolean() {
     local selected=0
     local message="$1"
     local menu_height=3
-    local original_line
-    function store_position() {
-        original_line=$(tput lines 2>/dev/null)
-    }
     function draw_menu() {
         echo -e "? ${message}"
         echo -e ""
@@ -1557,7 +1536,6 @@ function interactive_select_boolean() {
         echo "$key"
     }
     tput civis 2>/dev/null
-    store_position
     trap 'for ((i=0; i<menu_height; i++)); do tput cuu1 2>/dev/null; tput el 2>/dev/null; done; tput cnorm 2>/dev/null; echo -e "\n[INFO] Operation canceled\n"; exit 130' INT TERM
     draw_menu
     while true; do
@@ -1566,19 +1544,28 @@ function interactive_select_boolean() {
         "[D" | "a" | "A")
             if [ "$selected" -gt 0 ]; then
                 selected=$((selected - 1))
-                for ((i=0; i<menu_height; i++)); do tput cuu1 2>/dev/null; tput el 2>/dev/null; done
+                for ((i = 0; i < menu_height; i++)); do
+                    tput cuu1 2>/dev/null
+                    tput el 2>/dev/null
+                done
                 draw_menu
             fi
             ;;
         "[C" | "d" | "D")
             if [ "$selected" -lt 1 ]; then
                 selected=$((selected + 1))
-                for ((i=0; i<menu_height; i++)); do tput cuu1 2>/dev/null; tput el 2>/dev/null; done
+                for ((i = 0; i < menu_height; i++)); do
+                    tput cuu1 2>/dev/null
+                    tput el 2>/dev/null
+                done
                 draw_menu
             fi
             ;;
         "")
-            for ((i=0; i<menu_height; i++)); do tput cuu1 2>/dev/null; tput el 2>/dev/null; done
+            for ((i = 0; i < menu_height; i++)); do
+                tput cuu1 2>/dev/null
+                tput el 2>/dev/null
+            done
             break
             ;;
         *) ;;
@@ -1605,7 +1592,7 @@ function animate_exec() {
 
     local -a spinner_frames
     case "$spinner_style" in
-    classic|line)
+    classic | line)
         spinner_frames=("|" "/" "-" "\\")
         ;;
     bar)
@@ -1683,13 +1670,13 @@ function animate_exec() {
     temp_file="$(make_temp_file)"
     trap "cleanup" INT TERM
     tput civis 2>/dev/null
-    echo 
-    echo 
+    echo
+    echo
     for ((i = 0; i < max_lines; i++)); do
-        echo 
+        echo
     done
 
-    eval "${cmd}" >"${temp_file}" 2>&1 &
+    $cmd >"${temp_file}" 2>&1 &
     local cmd_pid=$!
     local last_size=0
     local spin_idx=0

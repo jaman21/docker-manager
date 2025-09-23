@@ -32,16 +32,16 @@ FILE_PROXMOX_VERSION=/etc/pve/.version
 
 PACKAGE_MANAGER=""
 
-if [ -f "${FILE_DEBIAN_VERSION}" ] || \
-   [ -f "${FILE_ARMBIAN_RELEASE}" ] || \
-   [ -f "${FILE_RASPBERRYPI_OS_RELEASE}" ] || \
-   [ -f "${FILE_PROXMOX_VERSION}" ]; then
+if [ -f "${FILE_DEBIAN_VERSION}" ] ||
+    [ -f "${FILE_ARMBIAN_RELEASE}" ] ||
+    [ -f "${FILE_RASPBERRYPI_OS_RELEASE}" ] ||
+    [ -f "${FILE_PROXMOX_VERSION}" ]; then
     PACKAGE_MANAGER="apt"
-elif [ -f "${FILE_REDHAT_RELEASE}" ] || \
-     [ -f "${FILE_ORACLELINUX_RELEASE}" ] || \
-     [ -f "${FILE_OPENEULER_RELEASE}" ] || \
-     [ -f "${FILE_OPENCLOUDOS_RELEASE}" ] || \
-     [ -f "${FILE_ANOLISOS_RELEASE}" ]; then
+elif [ -f "${FILE_REDHAT_RELEASE}" ] ||
+    [ -f "${FILE_ORACLELINUX_RELEASE}" ] ||
+    [ -f "${FILE_OPENEULER_RELEASE}" ] ||
+    [ -f "${FILE_OPENCLOUDOS_RELEASE}" ] ||
+    [ -f "${FILE_ANOLISOS_RELEASE}" ]; then
     PACKAGE_MANAGER="yum"
 elif [ -f "${FILE_ARCHLINUX_RELEASE}" ]; then
     PACKAGE_MANAGER="pacman"
@@ -57,85 +57,85 @@ if [ -z "$PACKAGE_MANAGER" ]; then
     echo -e "${RED}- arch linux (pacman)${NC}"
     echo -e "${RED}- alpine linux (apk)${NC}"
     echo -e "${YELLOW}press enter to continue...${NC}"
-    read -p ""
-    exit 1 2>/dev/null
+    read -r -p ""
+    exit
 fi
 
 if ! command -v sudo >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1; then
     case "$PACKAGE_MANAGER" in
-        "apt")
-            apt-get update >/dev/null 2>&1
-            apt-get install -y sudo bash >/dev/null 2>&1
-            ;;
-        "yum")
-            if command -v dnf >/dev/null 2>&1; then
-                dnf install -y sudo bash >/dev/null 2>&1
-            else
-                yum install -y sudo bash >/dev/null 2>&1
-            fi
-            ;;
-        "pacman")
-            pacman -Sy --noconfirm sudo bash >/dev/null 2>&1
-            ;;
-        "apk")
-            apk add sudo bash >/dev/null 2>&1
-            ;;
-        *)
-            echo -e "${RED}unsupported package manager${NC}"
-            echo -e "${YELLOW}press enter to continue...${NC}"
-            read -p ""
-            exit 1 2>/dev/null
-            ;;
+    "apt")
+        apt-get update >/dev/null 2>&1
+        apt-get install -y sudo bash >/dev/null 2>&1
+        ;;
+    "yum")
+        if command -v dnf >/dev/null 2>&1; then
+            dnf install -y sudo bash >/dev/null 2>&1
+        else
+            yum install -y sudo bash >/dev/null 2>&1
+        fi
+        ;;
+    "pacman")
+        pacman -Sy --noconfirm sudo bash >/dev/null 2>&1
+        ;;
+    "apk")
+        apk add sudo bash >/dev/null 2>&1
+        ;;
+    *)
+        echo -e "${RED}unsupported package manager${NC}"
+        echo -e "${YELLOW}press enter to continue...${NC}"
+        read -r -p ""
+        exit
+        ;;
     esac
 fi
 
 function INSTALL_PREREQUISITES() {
-	if ! command -v jq >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
-		case "$PACKAGE_MANAGER" in
-			"apt")
-				sudo apt-get update >/dev/null 2>&1
-				sudo apt-get install -y jq curl >/dev/null 2>&1
-				;;
-			"yum")
-				if command -v dnf >/dev/null 2>&1; then
-					sudo dnf install -y jq curl >/dev/null 2>&1
-				else
-					sudo yum install -y jq curl >/dev/null 2>&1
-				fi
-				;;
-			"pacman")
-				sudo pacman -Sy --noconfirm jq curl >/dev/null 2>&1
-				;;
-			"apk")
-				sudo apk add jq curl >/dev/null 2>&1
-				;;
-			*)
-				echo -e "${RED}unsupported system type${NC}"
-                echo -e "${YELLOW}press enter to continue...${NC}"
-				read -p ""
-				exit 1 2>/dev/null
-				;;
-		esac
-	fi
+    if ! command -v jq >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+        case "$PACKAGE_MANAGER" in
+        "apt")
+            sudo apt-get update >/dev/null 2>&1
+            sudo apt-get install -y jq curl >/dev/null 2>&1
+            ;;
+        "yum")
+            if command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y jq curl >/dev/null 2>&1
+            else
+                sudo yum install -y jq curl >/dev/null 2>&1
+            fi
+            ;;
+        "pacman")
+            sudo pacman -Sy --noconfirm jq curl >/dev/null 2>&1
+            ;;
+        "apk")
+            sudo apk add jq curl >/dev/null 2>&1
+            ;;
+        *)
+            echo -e "${RED}unsupported system type${NC}"
+            echo -e "${YELLOW}press enter to continue...${NC}"
+            read -r -p ""
+            exit
+            ;;
+        esac
+    fi
 
     if ! command -v docker >/dev/null 2>&1; then
         echo -e "${YELLOW}start installing docker...${NC}"
         echo -e "${BLUE}customize docker image storage directory?${NC}"
-        
+
         while true; do
             echo -ne "${BLUE}press enter for default directory (optional): ${NC}"
             read -r custom_docker_dir
-            
+
             if [[ -z "$custom_docker_dir" ]]; then
                 break
             fi
-            
+
             if [[ ! "$custom_docker_dir" =~ ^[a-zA-Z0-9._/-]+$ ]]; then
                 echo -e "${RED}invalid directory path format${NC}"
                 echo -e "${YELLOW}please enter a valid path or press enter for default${NC}"
                 continue
             fi
-            
+
             if [[ ! -d "$custom_docker_dir" ]]; then
                 echo -e "${YELLOW}creating directory: $custom_docker_dir${NC}"
                 if ! mkdir -p "$custom_docker_dir" 2>/dev/null; then
@@ -144,7 +144,7 @@ function INSTALL_PREREQUISITES() {
                     continue
                 fi
             fi
-            
+
             if [[ ! -w "$custom_docker_dir" ]]; then
                 echo -e "${RED}directory $custom_docker_dir has no write permission${NC}"
                 echo -e "${YELLOW}please enter a valid path or press enter for default${NC}"
@@ -152,7 +152,7 @@ function INSTALL_PREREQUISITES() {
             fi
             break
         done
-        
+
         if [ "$PACKAGE_MANAGER" = "yum" ] || [ "$PACKAGE_MANAGER" = "apt" ]; then
             if [ -n "$custom_docker_dir" ]; then
                 local docker_install_cmd="bash <(curl -sSL https://raw.githubusercontent.com/jaman21/docker-manager/main/di.sh)"
@@ -168,57 +168,51 @@ function INSTALL_PREREQUISITES() {
             fi
 
             if ! eval "$docker_install_cmd"; then
-                echo -e "${RED}docker installation failed${NC}"
-                echo -e "${YELLOW}press enter to continue...${NC}"
-                read -p ""
-                exit 1 2>/dev/null
+                exit
             fi
         elif [ "$PACKAGE_MANAGER" = "pacman" ]; then
             if ! pacman -S docker --noconfirm; then
                 echo -e "${RED}docker installation failed${NC}"
-                echo -e "${YELLOW}press enter to continue...${NC}"
-                read -p ""
-                exit 1 2>/dev/null
+                exit
             fi
-            
+
             if [ -n "$custom_docker_dir" ]; then
                 mkdir -p "$custom_docker_dir"
                 mkdir -p /etc/docker
-                cat > /etc/docker/daemon.json << EOF
+                cat >/etc/docker/daemon.json <<EOF
 {
     "data-root": "$custom_docker_dir"
 }
 EOF
             fi
-            
+
             systemctl enable --now docker
         elif [ "$PACKAGE_MANAGER" = "apk" ]; then
             if ! apk add --no-cache docker docker-cli docker-compose; then
                 echo -e "${RED}docker installation failed${NC}"
                 echo -e "${YELLOW}press enter to continue...${NC}"
-                read -p ""
-                exit 1 2>/dev/null
+                read -r -p ""
+                exit
             fi
-            
+
             if [ -n "$custom_docker_dir" ]; then
                 mkdir -p "$custom_docker_dir"
                 mkdir -p /etc/docker
-                cat > /etc/docker/daemon.json << EOF
+                cat >/etc/docker/daemon.json <<EOF
 {
     "data-root": "$custom_docker_dir"
 }
 EOF
             fi
-            
+
             rc-update add docker default
             rc-service docker start
         else
             echo -e "${RED}docker installation failed, unsupported system type${NC}"
             echo -e "${YELLOW}press enter to continue...${NC}"
-            read -p ""
-            exit 1 2>/dev/null
+            read -r -p ""
+            exit
         fi
-        
 
         if [ -f "/usr/libexec/docker/cli-plugins/docker-compose" ]; then
             sudo cp /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
@@ -227,12 +221,12 @@ EOF
             command -v docker-compose >/dev/null 2>&1 || {
                 echo -e "${YELLOW}installing docker compose...${NC}"
                 COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
-                if ! sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || \
-                   ! sudo chmod +x /usr/local/bin/docker-compose; then
+                if ! sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose ||
+                    ! sudo chmod +x /usr/local/bin/docker-compose; then
                     echo -e "${RED}docker compose installation failed${NC}"
                     echo -e "${YELLOW}press enter to continue...${NC}"
-                    read -p ""
-                    exit 1 2>/dev/null
+                    read -r -p ""
+                    exit
                 fi
             }
         fi
@@ -245,7 +239,7 @@ dest="/usr/local/bin/dm.sh"
 if [ ! -f "$dest" ]; then
     if command -v curl >/dev/null 2>&1; then
         if sudo curl -fsSL "https://raw.githubusercontent.com/jaman21/docker-manager/main/dm.sh" -o "$dest" 2>/dev/null && sudo chmod +x "$dest" 2>/dev/null; then
-            cat > "/usr/local/bin/dm" << EOF
+            cat >"/usr/local/bin/dm" <<EOF
 #!/bin/bash
 bash <(cat /usr/local/bin/dm.sh)
 EOF
@@ -269,247 +263,270 @@ cleanup_resources() {
     local dir_path="${2:-}"
 
     case "$mode" in
-        single)
-            if [ -n "$dir_path" ] && [ -d "$dir_path" ]; then
-                rm -rf "$dir_path"
+    single)
+        if [ -n "$dir_path" ] && [ -d "$dir_path" ]; then
+            rm -rf "$dir_path"
+        fi
+        ;;
+    all)
+        find /tmp -maxdepth 1 -name "docker_temp_*" -type d -mmin +60 -exec rm -rf {} +
+        ;;
+    docker)
+        echo -e "${YELLOW}choose docker cleanup level:${NC}"
+        echo "1) safe cleanup (only dangling resources)"
+        echo "2) deep cleanup (all unused resources)"
+        echo "3) cancel"
+        read -r -p "choose [1]: " cleanup_level
+        cleanup_level=${cleanup_level:-1}
+
+        case "$cleanup_level" in
+        1)
+            echo "cleaning up dangling images..."
+            docker image prune -f
+
+            echo "cleaning up build cache..."
+            docker builder prune -f
+
+            echo "cleaning up unused volumes..."
+            docker volume prune -f
+
+            echo "cleaning up unused networks..."
+            docker network prune -f
+            ;;
+        2)
+            read -r -p "confirm continue? (y/N): " confirm
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                echo "cleaning up all unused images..."
+                docker image prune -a -f
+
+                echo "cleaning up build cache..."
+                docker builder prune -f
+
+                echo "cleaning up all unused volumes..."
+                docker volume prune -f
+
+                echo "cleaning up all unused networks..."
+                docker network prune -f
+            else
+                echo "cleanup operation cancelled"
             fi
             ;;
-        all)
-            find /tmp -maxdepth 1 -name "docker_temp_*" -type d -mmin +60 -exec rm -rf {} +
-            ;;
-        docker)
-            echo -e "${YELLOW}choose docker cleanup level:${NC}"
-            echo "1) safe cleanup (only dangling resources)"
-            echo "2) deep cleanup (all unused resources)"
-            echo "3) cancel"
-            read -r -p "choose [1]: " cleanup_level
-            cleanup_level=${cleanup_level:-1}
-
-            case "$cleanup_level" in
-                1)
-                    echo "cleaning up dangling images..."
-                    docker image prune -f
-
-                    echo "cleaning up build cache..."
-                    docker builder prune -f
-
-                    echo "cleaning up unused volumes..."
-                    docker volume prune -f
-
-                    echo "cleaning up unused networks..."
-                    docker network prune -f
-                    ;;
-                2)
-                    read -r -p "confirm continue? (y/N): " confirm
-                    if [[ "$confirm" =~ ^[Yy]$ ]]; then
-                        echo "cleaning up all unused images..."
-                        docker image prune -a -f
-
-                        echo "cleaning up build cache..."
-                        docker builder prune -f
-
-                        echo "cleaning up all unused volumes..."
-                        docker volume prune -f
-
-                        echo "cleaning up all unused networks..."
-                        docker network prune -f
-                    else
-                        echo "cleanup operation cancelled"
-                    fi
-                    ;;
-                3)
-                    echo "cleanup operation cancelled"
-                    ;;
-                *)
-                    echo "invalid selection, cleanup operation cancelled"
-                    ;;
-            esac
-            read -r -p "press enter to continue..."
+        3)
+            echo "cleanup operation cancelled"
             ;;
         *)
-            return 1
+            echo "invalid selection, cleanup operation cancelled"
             ;;
+        esac
+        read -r -p "press enter to continue..."
+        ;;
+    *)
+        return 1
+        ;;
     esac
 }
 
 publish_docker() {
-	while true; do
-		read -r -p "project directory (full path required): " PROJECT_DIR
-		if [[ -d "$PROJECT_DIR" ]]; then
-			break
-		else
-			while true; do
-				read -r -p "directory does not exist, retry input? (y/n): " RETRY
-				case "$RETRY" in
-					y|Y) break;;
-					n|N) return 1;;
-					*) echo "please enter y or n";;
-				esac
-			done
-		fi
-	done
+    while true; do
+        read -r -p "project directory (full path required): " PROJECT_DIR
+        if [[ -d "$PROJECT_DIR" ]]; then
+            break
+        else
+            while true; do
+                read -r -p "directory does not exist, retry input? (y/n): " RETRY
+                case "$RETRY" in
+                y | Y) break ;;
+                n | N) return 1 ;;
+                *) echo "please enter y or n" ;;
+                esac
+            done
+        fi
+    done
 
-	DOCKERFILE="$PROJECT_DIR/Dockerfile"
-	if [[ ! -f "$DOCKERFILE" ]]; then
-		while true; do
-			read -r -p "enter dockerfile filename in project directory: " DOCKERFILE_NAME
-			DOCKERFILE="$PROJECT_DIR/$DOCKERFILE_NAME"
-			if [[ -f "$DOCKERFILE" ]]; then
-				break
-			else
-				while true; do
-					read -r -p "file does not exist, retry input? (y/n): " RETRY
-					case "$RETRY" in
-						y|Y) break;;
-						n|N) return 1;;
-						*) echo "please enter y or n";;
-					esac
-				done
-			fi
-		done
-	fi
+    DOCKERFILE="$PROJECT_DIR/Dockerfile"
+    if [[ ! -f "$DOCKERFILE" ]]; then
+        while true; do
+            read -r -p "enter dockerfile filename in project directory: " DOCKERFILE_NAME
+            DOCKERFILE="$PROJECT_DIR/$DOCKERFILE_NAME"
+            if [[ -f "$DOCKERFILE" ]]; then
+                break
+            else
+                while true; do
+                    read -r -p "file does not exist, retry input? (y/n): " RETRY
+                    case "$RETRY" in
+                    y | Y) break ;;
+                    n | N) return 1 ;;
+                    *) echo "please enter y or n" ;;
+                    esac
+                done
+            fi
+        done
+    fi
 
-	CRED_FILE="/usr/local/bin/docker.json"
-	if command -v jq >/dev/null 2>&1 && [ -f "$CRED_FILE" ] && [ -s "$CRED_FILE" ]; then
-		mapfile -t USER_LIST < <(jq -r '.[].username' "$CRED_FILE" 2>/dev/null)
-		COUNT=${#USER_LIST[@]}
-		if [ "$COUNT" -gt 0 ]; then
-			echo "found saved login credentials:"
-			for i in $(seq 1 "$COUNT"); do
-				echo "  $i) ${USER_LIST[$((i-1))]}"
-			done
-			while true; do
-				read -r -p "select (1-$COUNT) or s to skip: " SEL
-				if [[ "$SEL" =~ ^[0-9]+$ ]] && [ "$SEL" -ge 1 ] && [ "$SEL" -le "$COUNT" ]; then
-					USERNAME="${USER_LIST[$((SEL-1))]}"
-					PASSWORD=$(jq -r ".[$((SEL-1))].password" "$CRED_FILE")
-					break
-				elif [[ "$SEL" = "s" || "$SEL" = "S" ]]; then
-					break
-				else
-					echo "invalid number"
-				fi
-			done
-		fi
-	fi
+    CRED_FILE="/usr/local/bin/docker.json"
+    if command -v jq >/dev/null 2>&1 && [ -f "$CRED_FILE" ] && [ -s "$CRED_FILE" ]; then
+        mapfile -t USER_LIST < <(jq -r '.[].username' "$CRED_FILE" 2>/dev/null)
+        COUNT=${#USER_LIST[@]}
+        if [ "$COUNT" -gt 0 ]; then
+            echo "found saved login credentials:"
+            for i in $(seq 1 "$COUNT"); do
+                echo "  $i) ${USER_LIST[$((i - 1))]}"
+            done
+            while true; do
+                read -r -p "select (1-$COUNT) or s to skip: " SEL
+                if [[ "$SEL" =~ ^[0-9]+$ ]] && [ "$SEL" -ge 1 ] && [ "$SEL" -le "$COUNT" ]; then
+                    USERNAME="${USER_LIST[$((SEL - 1))]}"
+                    PASSWORD=$(jq -r ".[$((SEL - 1))].password" "$CRED_FILE")
+                    break
+                elif [[ "$SEL" = "s" || "$SEL" = "S" ]]; then
+                    break
+                else
+                    echo "invalid number"
+                fi
+            done
+        fi
+    fi
 
-	while true; do
-		if [ -z "${USERNAME:-}" ]; then
-			read -r -p "enter docker hub username: " USERNAME
-			if [[ ! "$USERNAME" =~ ^[a-z0-9][a-z0-9-]{2,28}[a-z0-9]$ ]]; then
-				echo "invalid username format"; unset USERNAME; continue
-			fi
-		fi
-		if [ -z "${PASSWORD:-}" ]; then
-			read -r -p "enter docker hub password/token: " PASSWORD
-		fi
-		if echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin >/dev/null 2>&1; then
-			echo "login successful"
-			if command -v jq >/dev/null 2>&1; then
-				TMP_FILE=$(mktemp)
-				if [ -f "$CRED_FILE" ] && [ -s "$CRED_FILE" ]; then
-					IDX=$(jq -r --arg u "$USERNAME" 'map(.username) | index($u) // -1' "$CRED_FILE")
-					if [ "$IDX" -ge 0 ] 2>/dev/null; then
-						jq --arg u "$USERNAME" --arg p "$PASSWORD" '(.[] | select(.username==$u) | .password) = $p' "$CRED_FILE" > "$TMP_FILE" && mv "$TMP_FILE" "$CRED_FILE"
-					else
-						jq --arg u "$USERNAME" --arg p "$PASSWORD" '. + [{username:$u,password:$p}]' "$CRED_FILE" > "$TMP_FILE" && mv "$TMP_FILE" "$CRED_FILE"
-					fi
-				else
-					echo "[{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}]" > "$CRED_FILE"
-				fi
-			else
-				echo "note: jq not installed, skipping credential save"
-			fi
-			break
-		else
+    while true; do
+        if [ -z "${USERNAME:-}" ]; then
+            read -r -p "enter docker hub username: " USERNAME
+            if [[ ! "$USERNAME" =~ ^[a-z0-9][a-z0-9-]{2,28}[a-z0-9]$ ]]; then
+                echo "invalid username format"
+                unset USERNAME
+                continue
+            fi
+        fi
+        if [ -z "${PASSWORD:-}" ]; then
+            read -r -p "enter docker hub password/token: " PASSWORD
+        fi
+        if echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin >/dev/null 2>&1; then
+            echo "login successful"
+            if command -v jq >/dev/null 2>&1; then
+                TMP_FILE=$(mktemp)
+                if [ -f "$CRED_FILE" ] && [ -s "$CRED_FILE" ]; then
+                    IDX=$(jq -r --arg u "$USERNAME" 'map(.username) | index($u) // -1' "$CRED_FILE")
+                    if [ "$IDX" -ge 0 ] 2>/dev/null; then
+                        jq --arg u "$USERNAME" --arg p "$PASSWORD" '(.[] | select(.username==$u) | .password) = $p' "$CRED_FILE" >"$TMP_FILE" && mv "$TMP_FILE" "$CRED_FILE"
+                    else
+                        jq --arg u "$USERNAME" --arg p "$PASSWORD" '. + [{username:$u,password:$p}]' "$CRED_FILE" >"$TMP_FILE" && mv "$TMP_FILE" "$CRED_FILE"
+                    fi
+                else
+                    echo "[{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}]" >"$CRED_FILE"
+                fi
+            else
+                echo "note: jq not installed, skipping credential save"
+            fi
+            break
+        else
             unset USERNAME
             unset PASSWORD
-			while true; do
-				read -r -p "login failed, retry? (y/n): " RETRY
-				case "$RETRY" in
-					y|Y) break;;
-					n|N) return 1;;
-					*) echo "please enter y or n";;
-				esac
-			done
-			continue
-		fi
-	done
+            while true; do
+                read -r -p "login failed, retry? (y/n): " RETRY
+                case "$RETRY" in
+                y | Y) break ;;
+                n | N) return 1 ;;
+                *) echo "please enter y or n" ;;
+                esac
+            done
+            continue
+        fi
+    done
 
-	while true; do
-		read -r -p "enter project name (e.g. app): " PROJECT_NAME
-		if [[ "$PROJECT_NAME" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
-			REPO="$USERNAME/$PROJECT_NAME"
-			break
-		else
-			echo "invalid project name, only lowercase letters, numbers, ._- allowed, must start with letter or number"
-		fi
-	done
+    while true; do
+        read -r -p "enter project name (e.g. app): " PROJECT_NAME
+        if [[ "$PROJECT_NAME" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+            REPO="$USERNAME/$PROJECT_NAME"
+            break
+        else
+            echo "invalid project name, only lowercase letters, numbers, ._- allowed, must start with letter or number"
+        fi
+    done
 
-	while true; do
-		read -r -p "enter project tag [default: latest]: " TAG
-		TAG=${TAG:-latest}
-		if [[ "$TAG" =~ ^[A-Za-z0-9_.-]{1,128}$ ]]; then
-			break
-		else
-			echo "invalid tag, only a-z a-z 0-9 . _ - allowed, max 128 characters"
-		fi
-	done
+    while true; do
+        read -r -p "enter project tag [default: latest]: " TAG
+        TAG=${TAG:-latest}
+        if [[ "$TAG" =~ ^[A-Za-z0-9_.-]{1,128}$ ]]; then
+            break
+        else
+            echo "invalid tag, only a-z a-z 0-9 . _ - allowed, max 128 characters"
+        fi
+    done
 
-	ALSO_LATEST="N"
-	if [[ "$TAG" != "latest" ]]; then
-		while true; do
-			read -r -p "also push latest tag? (y/n): " ALSO_LATEST
-			case "$ALSO_LATEST" in
-				y|Y|n|N) break;;
-				*) echo "please enter y or n";;
-			esac
-		done
-	fi
+    ALSO_LATEST="N"
+    if [[ "$TAG" != "latest" ]]; then
+        while true; do
+            read -r -p "also push latest tag? (y/n): " ALSO_LATEST
+            case "$ALSO_LATEST" in
+            y | Y | n | N) break ;;
+            *) echo "please enter y or n" ;;
+            esac
+        done
+    fi
 
-	echo "choose target platform combination:"
-	echo "  1) linux/amd64"
-	echo "  2) linux/arm64"
-	echo "  3) linux/386"
-	echo "  4) linux/arm/v7"
-	echo "  5) linux/amd64,linux/arm64,linux/386"
-	echo "  6) linux/amd64,linux/arm64,linux/arm/v7"
-	echo "  7) linux/amd64,linux/arm64,linux/386,linux/arm/v7"
-	while true; do
-		read -r -p "enter option number [default: 1]: " ARCH_SEL
-		ARCH_SEL=${ARCH_SEL:-1}
-		case "$ARCH_SEL" in
-			1) PLATFORMS="linux/amd64"; break;;
-			2) PLATFORMS="linux/arm64"; break;;
-			3) PLATFORMS="linux/386"; break;;
-			4) PLATFORMS="linux/arm/v7"; break;;
-			5) PLATFORMS="linux/amd64,linux/arm64,linux/386"; break;;
-			6) PLATFORMS="linux/amd64,linux/arm64,linux/arm/v7"; break;;
-			7) PLATFORMS="linux/amd64,linux/arm64,linux/386,linux/arm/v7"; break;;
-			*) echo "invalid option";;
-		esac
-	done
+    echo "choose target platform combination:"
+    echo "  1) linux/amd64"
+    echo "  2) linux/arm64"
+    echo "  3) linux/386"
+    echo "  4) linux/arm/v7"
+    echo "  5) linux/amd64,linux/arm64,linux/386"
+    echo "  6) linux/amd64,linux/arm64,linux/arm/v7"
+    echo "  7) linux/amd64,linux/arm64,linux/386,linux/arm/v7"
+    while true; do
+        read -r -p "enter option number [default: 1]: " ARCH_SEL
+        ARCH_SEL=${ARCH_SEL:-1}
+        case "$ARCH_SEL" in
+        1)
+            PLATFORMS="linux/amd64"
+            break
+            ;;
+        2)
+            PLATFORMS="linux/arm64"
+            break
+            ;;
+        3)
+            PLATFORMS="linux/386"
+            break
+            ;;
+        4)
+            PLATFORMS="linux/arm/v7"
+            break
+            ;;
+        5)
+            PLATFORMS="linux/amd64,linux/arm64,linux/386"
+            break
+            ;;
+        6)
+            PLATFORMS="linux/amd64,linux/arm64,linux/arm/v7"
+            break
+            ;;
+        7)
+            PLATFORMS="linux/amd64,linux/arm64,linux/386,linux/arm/v7"
+            break
+            ;;
+        *) echo "invalid option" ;;
+        esac
+    done
 
-	while true; do
-		echo "user: $USERNAME"
-		echo "repository: $REPO"
-		echo "tag: $TAG"
-		echo "platforms: $PLATFORMS"
-		read -r -p "confirm start build and push? (Y/n): " CONFIRM
-		case "$CONFIRM" in
-			n|N) return 1;;
-			*) break;;
-		esac
-	done
+    while true; do
+        echo "user: $USERNAME"
+        echo "repository: $REPO"
+        echo "tag: $TAG"
+        echo "platforms: $PLATFORMS"
+        read -r -p "confirm start build and push? (Y/n): " CONFIRM
+        case "$CONFIRM" in
+        n | N) return 1 ;;
+        *) break ;;
+        esac
+    done
 
-	if [[ "$ALSO_LATEST" =~ ^[Yy]$ && "$TAG" != "latest" ]]; then
-		docker buildx build --platform "$PLATFORMS" -t "$REPO:$TAG" -t "$REPO:latest" -f "$DOCKERFILE" "$PROJECT_DIR" --push
-	else
-		docker buildx build --platform "$PLATFORMS" -t "$REPO:$TAG" -f "$DOCKERFILE" "$PROJECT_DIR" --push
-	fi
+    if [[ "$ALSO_LATEST" =~ ^[Yy]$ && "$TAG" != "latest" ]]; then
+        docker buildx build --platform "$PLATFORMS" -t "$REPO:$TAG" -t "$REPO:latest" -f "$DOCKERFILE" "$PROJECT_DIR" --push
+    else
+        docker buildx build --platform "$PLATFORMS" -t "$REPO:$TAG" -f "$DOCKERFILE" "$PROJECT_DIR" --push
+    fi
 
-	read -r -p "publishing completed, press enter to continue..."
-	return 0
+    read -r -p "publishing completed, press enter to continue..."
+    return 0
 }
 
 stop_container() {
@@ -626,133 +643,133 @@ handle_writable_layer_mount() {
     read -r -p "$(tput setaf 3)choose (1/2/3) enter=2: $(tput sgr0)" choice
 
     case "$choice" in
-        1)
-            echo 
-            echo -e "${YELLOW}entered local root environment in container directory, type exit to quit${NC}"
-            (cd "$mount_point" && /bin/bash)
-            sync
-            ;;
-        3)
-            echo 
-            echo -e "${YELLOW}getting container volume information...${NC}"
-            local volumes_info
-            volumes_info=$(docker inspect "$container_id" -f '{{range .Mounts}}{{.Source}}|{{.Destination}}{{println}}{{end}}' 2>/dev/null)
+    1)
+        echo
+        echo -e "${YELLOW}entered local root environment in container directory, type exit to quit${NC}"
+        (cd "$mount_point" && /bin/bash)
+        sync
+        ;;
+    3)
+        echo
+        echo -e "${YELLOW}getting container volume information...${NC}"
+        local volumes_info
+        volumes_info=$(docker inspect "$container_id" -f '{{range .Mounts}}{{.Source}}|{{.Destination}}{{println}}{{end}}' 2>/dev/null)
 
-            if [ -n "$volumes_info" ]; then
-                local volume_count=0
-                local volume_sources=()
-                local volume_destinations=()
+        if [ -n "$volumes_info" ]; then
+            local volume_count=0
+            local volume_sources=()
+            local volume_destinations=()
 
-                while IFS='|' read -r vol_source vol_dest; do
-                    if [[ -n "$vol_source" && -n "$vol_dest" ]]; then
-                        volume_sources+=("$vol_source")
-                        volume_destinations+=("$vol_dest")
-                        ((volume_count++))
-                    fi
-                done < <(echo "$volumes_info")
-
-                if [ $volume_count -eq 0 ]; then
-                    echo -e "${YELLOW}no valid volumes found${NC}"
-                else
-                    echo -e "${BLUE}found $volume_count volumes:${NC}"
-                    for ((i=0; i<volume_count; i++)); do
-                        echo -e "  $((i+1))) ${volume_sources[i]} -> ${volume_destinations[i]}"
-                    done
-
-                    while true; do
-                        read -r -p "choose volume number to enter (1-$volume_count) or q to return: " vol_choice
-
-                        if [ "$vol_choice" = "q" ] || [ "$vol_choice" = "Q" ]; then
-                            break
-                        fi
-
-                        if [[ "$vol_choice" =~ ^[0-9]+$ ]] && [ "$vol_choice" -ge 1 ] && [ "$vol_choice" -le "$volume_count" ]; then
-                            local selected_index=$((vol_choice-1))
-                            local selected_source="${volume_sources[selected_index]}"
-                            local selected_dest="${volume_destinations[selected_index]}"
-                            echo -e "${YELLOW}entering volume directory: $selected_source${NC}"
-                            echo -e "${BLUE}container path: $selected_dest${NC}"
-                            echo -e "${YELLOW}type exit to quit${NC}"
-
-                            (cd "$selected_source" && /bin/bash)
-                            sync
-                            break
-                        else
-                            echo -e "${RED}please enter valid number (1-$volume_count) or q to return${NC}"
-                        fi
-                    done
+            while IFS='|' read -r vol_source vol_dest; do
+                if [[ -n "$vol_source" && -n "$vol_dest" ]]; then
+                    volume_sources+=("$vol_source")
+                    volume_destinations+=("$vol_dest")
+                    ((volume_count++))
                 fi
-            else
-                echo -e "${YELLOW}this container has no volumes configured${NC}"
-            fi
-            ;;
-        *)
-            echo -e "${YELLOW}trying to enter container root environment, type exit to quit${NC}"
+            done < <(echo "$volumes_info")
 
-            [ -d "$mount_point/opt" ] || mkdir -p "$mount_point/opt"
-            true > "$mount_point/opt/env.sh"
-            local env_output
-            env_output=$(docker inspect "$container_id" -f '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null)
-            if [ -n "$env_output" ]; then
-                echo "$env_output" | while IFS= read -r line; do
-                    if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] && [[ ! "$line" =~ [%{}] ]]; then
-                        echo "export $line" >> "$mount_point/opt/env.sh"
+            if [ $volume_count -eq 0 ]; then
+                echo -e "${YELLOW}no valid volumes found${NC}"
+            else
+                echo -e "${BLUE}found $volume_count volumes:${NC}"
+                for ((i = 0; i < volume_count; i++)); do
+                    echo -e "  $((i + 1))) ${volume_sources[i]} -> ${volume_destinations[i]}"
+                done
+
+                while true; do
+                    read -r -p "choose volume number to enter (1-$volume_count) or q to return: " vol_choice
+
+                    if [ "$vol_choice" = "q" ] || [ "$vol_choice" = "Q" ]; then
+                        break
+                    fi
+
+                    if [[ "$vol_choice" =~ ^[0-9]+$ ]] && [ "$vol_choice" -ge 1 ] && [ "$vol_choice" -le "$volume_count" ]; then
+                        local selected_index=$((vol_choice - 1))
+                        local selected_source="${volume_sources[selected_index]}"
+                        local selected_dest="${volume_destinations[selected_index]}"
+                        echo -e "${YELLOW}entering volume directory: $selected_source${NC}"
+                        echo -e "${BLUE}container path: $selected_dest${NC}"
+                        echo -e "${YELLOW}type exit to quit${NC}"
+
+                        (cd "$selected_source" && /bin/bash)
+                        sync
+                        break
+                    else
+                        echo -e "${RED}please enter valid number (1-$volume_count) or q to return${NC}"
                     fi
                 done
             fi
+        else
+            echo -e "${YELLOW}this container has no volumes configured${NC}"
+        fi
+        ;;
+    *)
+        echo -e "${YELLOW}trying to enter container root environment, type exit to quit${NC}"
 
-            DEFAULT_IFACE=$(ip route | grep default | awk '{print $5}' | head -1)
-            if [ -n "$DEFAULT_IFACE" ]; then
-                echo "export HOST_IFACE='$DEFAULT_IFACE'" >> "$mount_point/opt/env.sh"
-
-                IP_INFO=$(ip addr show "$DEFAULT_IFACE" | grep "inet " | awk '{print $2}' | head -1)
-                if [ -n "$IP_INFO" ]; then
-                    IP_ADDR=$(echo "$IP_INFO" | cut -d'/' -f1)
-                    NETMASK=$(echo "$IP_INFO" | cut -d'/' -f2)
-                    echo "ip addr add $IP_ADDR/$NETMASK dev $DEFAULT_IFACE 2>/dev/null" >> "$mount_point/opt/env.sh"
+        [ -d "$mount_point/opt" ] || mkdir -p "$mount_point/opt"
+        true >"$mount_point/opt/env.sh"
+        local env_output
+        env_output=$(docker inspect "$container_id" -f '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null)
+        if [ -n "$env_output" ]; then
+            echo "$env_output" | while IFS= read -r line; do
+                if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] && [[ ! "$line" =~ [%{}] ]]; then
+                    echo "export $line" >>"$mount_point/opt/env.sh"
                 fi
+            done
+        fi
 
-                GATEWAY=$(ip route | grep default | awk '{print $3}' | head -1)
-                if [ -n "$GATEWAY" ]; then
-                    echo "ip route add default via $GATEWAY 2>/dev/null" >> "$mount_point/opt/env.sh"
-                fi
+        DEFAULT_IFACE=$(ip route | grep default | awk '{print $5}' | head -1)
+        if [ -n "$DEFAULT_IFACE" ]; then
+            echo "export HOST_IFACE='$DEFAULT_IFACE'" >>"$mount_point/opt/env.sh"
+
+            IP_INFO=$(ip addr show "$DEFAULT_IFACE" | grep "inet " | awk '{print $2}' | head -1)
+            if [ -n "$IP_INFO" ]; then
+                IP_ADDR=$(echo "$IP_INFO" | cut -d'/' -f1)
+                NETMASK=$(echo "$IP_INFO" | cut -d'/' -f2)
+                echo "ip addr add $IP_ADDR/$NETMASK dev $DEFAULT_IFACE 2>/dev/null" >>"$mount_point/opt/env.sh"
             fi
 
-            DNS_SERVERS=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}' | head -1)
-            if [ -n "$DNS_SERVERS" ]; then
-                echo "echo 'nameserver $DNS_SERVERS' > /etc/resolv.conf 2>/dev/null" >> "$mount_point/opt/env.sh"
+            GATEWAY=$(ip route | grep default | awk '{print $3}' | head -1)
+            if [ -n "$GATEWAY" ]; then
+                echo "ip route add default via $GATEWAY 2>/dev/null" >>"$mount_point/opt/env.sh"
             fi
+        fi
 
-            echo "mkdir -p /dev 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "mkdir -p /dev/pts 2>/dev/null" >> "$mount_point/opt/env.sh"
-            mount -t proc proc "$mount_point/proc" 2>/dev/null
-            mount -t sysfs sys "$mount_point/sys" 2>/dev/null
-            mount -t devtmpfs dev "$mount_point/dev" 2>/dev/null
-            mount -t devpts pts "$mount_point/dev/pts" 2>/dev/null
-            mount -t tmpfs shm "$mount_point/dev/shm" 2>/dev/null
-            mount --bind /tmp "$mount_point/tmp" 2>/dev/null
+        DNS_SERVERS=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}' | head -1)
+        if [ -n "$DNS_SERVERS" ]; then
+            echo "echo 'nameserver $DNS_SERVERS' > /etc/resolv.conf 2>/dev/null" >>"$mount_point/opt/env.sh"
+        fi
 
-            echo "export LANG=C.UTF-8 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "export LC_ALL=C.UTF-8 2>/dev/null" >> "$mount_point/opt/env.sh"
+        echo "mkdir -p /dev 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "mkdir -p /dev/pts 2>/dev/null" >>"$mount_point/opt/env.sh"
+        mount -t proc proc "$mount_point/proc" 2>/dev/null
+        mount -t sysfs sys "$mount_point/sys" 2>/dev/null
+        mount -t devtmpfs dev "$mount_point/dev" 2>/dev/null
+        mount -t devpts pts "$mount_point/dev/pts" 2>/dev/null
+        mount -t tmpfs shm "$mount_point/dev/shm" 2>/dev/null
+        mount --bind /tmp "$mount_point/tmp" 2>/dev/null
 
-            echo "if command -v apt-get >/dev/null 2>&1; then" >> "$mount_point/opt/env.sh"
-            echo "  echo 'APT::Get::AllowUnauthenticated \"true\";' > /etc/apt/apt.conf.d/99allow-unauth 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "  echo 'Acquire::Check-Valid-Until \"false\";' >> /etc/apt/apt.conf.d/99allow-unauth 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "  echo 'APT::Get::AllowDowngrade \"true\";' >> /etc/apt/apt.conf.d/99allow-unauth 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "  apt-get update --allow-unauthenticated --allow-insecure-repositories 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "elif command -v yum >/dev/null 2>&1; then" >> "$mount_point/opt/env.sh"
-            echo "  yum update --assumeyes --skip-broken 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "elif command -v dnf >/dev/null 2>&1; then" >> "$mount_point/opt/env.sh"
-            echo "  dnf update --assumeyes --skip-broken 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "elif command -v apk >/dev/null 2>&1; then" >> "$mount_point/opt/env.sh"
-            echo "  apk update 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "elif command -v pacman >/dev/null 2>&1; then" >> "$mount_point/opt/env.sh"
-            echo "  pacman -Sy --noconfirm 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "elif command -v zypper >/dev/null 2>&1; then" >> "$mount_point/opt/env.sh"
-            echo "  zypper refresh --non-interactive 2>/dev/null" >> "$mount_point/opt/env.sh"
-            echo "fi" >> "$mount_point/opt/env.sh"
+        echo "export LANG=C.UTF-8 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "export LC_ALL=C.UTF-8 2>/dev/null" >>"$mount_point/opt/env.sh"
 
-            cat > "$mount_point/opt/entrypoint.sh" << 'EOF'
+        echo "if command -v apt-get >/dev/null 2>&1; then" >>"$mount_point/opt/env.sh"
+        echo "  echo 'APT::Get::AllowUnauthenticated \"true\";' > /etc/apt/apt.conf.d/99allow-unauth 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "  echo 'Acquire::Check-Valid-Until \"false\";' >> /etc/apt/apt.conf.d/99allow-unauth 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "  echo 'APT::Get::AllowDowngrade \"true\";' >> /etc/apt/apt.conf.d/99allow-unauth 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "  apt-get update --allow-unauthenticated --allow-insecure-repositories 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "elif command -v yum >/dev/null 2>&1; then" >>"$mount_point/opt/env.sh"
+        echo "  yum update --assumeyes --skip-broken 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "elif command -v dnf >/dev/null 2>&1; then" >>"$mount_point/opt/env.sh"
+        echo "  dnf update --assumeyes --skip-broken 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "elif command -v apk >/dev/null 2>&1; then" >>"$mount_point/opt/env.sh"
+        echo "  apk update 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "elif command -v pacman >/dev/null 2>&1; then" >>"$mount_point/opt/env.sh"
+        echo "  pacman -Sy --noconfirm 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "elif command -v zypper >/dev/null 2>&1; then" >>"$mount_point/opt/env.sh"
+        echo "  zypper refresh --non-interactive 2>/dev/null" >>"$mount_point/opt/env.sh"
+        echo "fi" >>"$mount_point/opt/env.sh"
+
+        cat >"$mount_point/opt/entrypoint.sh" <<'EOF'
 #!/bin/sh
 
 find_available_shell() {
@@ -764,7 +781,7 @@ find_available_shell() {
 
 SHELL_PATH=$(find_available_shell)
 if [ -z "$SHELL_PATH" ]; then
-    exit 1 2>/dev/null
+    exit
 fi
 
 if [ -f /opt/env.sh ]; then
@@ -776,17 +793,17 @@ fi
 export PS1="(container-mount) \w \$ "
 exec "$SHELL_PATH"
 EOF
-            chmod +x "$mount_point/opt/entrypoint.sh"
-            chmod +x "$mount_point/opt/env.sh"
-            chroot "$mount_point" "/opt/entrypoint.sh"
+        chmod +x "$mount_point/opt/entrypoint.sh"
+        chmod +x "$mount_point/opt/env.sh"
+        chroot "$mount_point" "/opt/entrypoint.sh"
 
-            sync
-            for sub_mount in "$mount_point/proc" "$mount_point/sys" "$mount_point/dev/pts" "$mount_point/dev/shm" "$mount_point/tmp" "$mount_point/dev"; do
-                if mountpoint -q "$sub_mount" 2>/dev/null; then
-                    umount -f "$sub_mount" 2>/dev/null
-                fi
-            done
-            ;;
+        sync
+        for sub_mount in "$mount_point/proc" "$mount_point/sys" "$mount_point/dev/pts" "$mount_point/dev/shm" "$mount_point/tmp" "$mount_point/dev"; do
+            if mountpoint -q "$sub_mount" 2>/dev/null; then
+                umount -f "$sub_mount" 2>/dev/null
+            fi
+        done
+        ;;
     esac
 
     if umount -f "$mount_point" 2>/dev/null; then
@@ -814,7 +831,7 @@ get_container_by_number() {
         return 1
     fi
 
-    local index=$((choice-1))
+    local index=$((choice - 1))
 
     declare -g CONTAINER_ID="${G_CONTAINER_IDS[index]}"
 
@@ -833,7 +850,7 @@ check_network_exists() {
 
 show_network_list() {
     echo "available networks: "
-    echo 
+    echo
 
     G_NETWORK_IDS=()
     G_NETWORK_NAMES=()
@@ -868,16 +885,16 @@ show_network_list() {
     printf "%3s) %-20s | %-10s | %-10s | %s\n" "no." "network name" "driver" "scope" "network id"
     echo "----------------------------------------------------------------"
 
-    for ((i=0; i<${#G_NETWORK_IDS[@]}; i++)); do
+    for ((i = 0; i < ${#G_NETWORK_IDS[@]}; i++)); do
         printf "%3d) %-20s | %-10s | %-10s | %s\n" \
-            $((i+1)) \
+            $((i + 1)) \
             "${G_NETWORK_NAMES[i]}" \
             "${G_NETWORK_DRIVERS[i]}" \
             "${G_NETWORK_SCOPES[i]}" \
             "${G_NETWORK_IDS[i]}"
     done
 
-    echo 
+    echo
 
     G_NETWORK_COUNT=${#G_NETWORK_IDS[@]}
     while true; do
@@ -888,9 +905,8 @@ show_network_list() {
         fi
 
         if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "$G_NETWORK_COUNT" ]; then
-            local index=$((choice-1))
+            local index=$((choice - 1))
             SELECTED_NETWORK_NAME="${G_NETWORK_NAMES[index]}"
-            SELECTED_NETWORK_ID="${G_NETWORK_IDS[index]}"
             SELECTED_NETWORK_DRIVER="${G_NETWORK_DRIVERS[index]}"
             return 0
         fi
@@ -943,7 +959,7 @@ show_container_list() {
         fi
     fi
 
-    for ((i=0; i<${#G_CONTAINER_IDS[@]}; i++)); do
+    for ((i = 0; i < ${#G_CONTAINER_IDS[@]}; i++)); do
         local display_status
         if [ "${G_CONTAINER_STATUSES[i]}" = "running" ]; then
             display_status="running"
@@ -952,14 +968,14 @@ show_container_list() {
         fi
 
         printf "%3d) %-8s | %-20s | %-12s | %s\n" \
-            $((i+1)) \
+            $((i + 1)) \
             "$display_status" \
             "${G_CONTAINER_NAMES[i]}" \
             "${G_CONTAINER_IDS[i]}" \
             "${G_CONTAINER_IMAGES[i]}"
     done
 
-    echo 
+    echo
 
     G_CONTAINER_COUNT=${#G_CONTAINER_IDS[@]}
     while true; do
@@ -995,7 +1011,7 @@ show_container_list() {
 
         break
     done
-    
+
     # 如果成功选择了容器，返回成功状态
     if [[ -n "$CONTAINER_ID" ]]; then
         return 0
@@ -1005,10 +1021,10 @@ show_container_list() {
 }
 
 show_container_config() {
-    echo 
+    echo
 
     local container_name
-    container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo )
+    container_name=$(docker inspect "$CONTAINER_ID" -f '{{.Name}}' 2>/dev/null | sed 's/\///' || echo)
     local container_image
     container_image=$(docker inspect "$CONTAINER_ID" -f '{{.Config.Image}}' 2>/dev/null || echo "unknown")
     local container_status
@@ -1057,7 +1073,7 @@ show_container_config() {
         echo "$mount_output"
     fi
 
-    echo 
+    echo
 }
 
 modify_container_config() {
@@ -1072,7 +1088,7 @@ modify_container_config() {
         echo "3) set auto-start"
         echo "4) return to previous menu"
         echo "q) exit"
-        echo 
+        echo
 
         read -r -p "choose (1-4/q): " config_choice
 
@@ -1081,153 +1097,153 @@ modify_container_config() {
         fi
 
         case $config_choice in
+        1)
+            read -r -p "enter new container name: " new_container_name
+            if [[ -z "$new_container_name" ]]; then
+                echo "container name cannot be empty"
+                read -r -p "press enter to continue..."
+                continue
+            fi
+            if docker rename "$CONTAINER_ID" "$new_container_name"; then
+                echo -e "${GREEN}container renamed successfully${NC}"
+                read -r -p "press enter to continue..."
+            else
+                echo -e "${RED}container rename failed${NC}"
+                read -r -p "press enter to continue..."
+            fi
+            ;;
+
+        2)
+            echo "choose new network mode: "
+            echo "1) select existing network"
+            echo "2) create new network"
+            echo "q) return"
+            echo
+
+            read -r -p "choose (1-2/q): " network_mode_choice
+
+            if [ "$network_mode_choice" = "q" ] || [ "$network_mode_choice" = "Q" ]; then
+                continue
+            fi
+
+            local new_network=""
+
+            case $network_mode_choice in
             1)
-                read -r -p "enter new container name: " new_container_name
-                if [[ -z "$new_container_name" ]]; then
-                    echo "container name cannot be empty"
+                if show_network_list; then
+                    echo -e "${GREEN}selected network: $SELECTED_NETWORK_NAME${NC}"
+                    new_network="$SELECTED_NETWORK_NAME"
+                else
+                    echo "network selection cancelled"
                     read -r -p "press enter to continue..."
                     continue
-                fi
-                if docker rename "$CONTAINER_ID" "$new_container_name"; then
-                    echo -e "${GREEN}container renamed successfully${NC}"
-                    read -r -p "press enter to continue..."
-                else
-                    echo -e "${RED}container rename failed${NC}"
-                    read -r -p "press enter to continue..."
                 fi
                 ;;
-
             2)
-                echo "choose new network mode: "
-                echo "1) select existing network"
-                echo "2) create new network"
+                while true; do
+                    read -r -p "enter new network name: " new_network_name
+                    if [[ -z "$new_network_name" ]]; then
+                        echo "network name cannot be empty"
+                        continue
+                    fi
+
+                    if check_network_exists "$new_network_name"; then
+                        echo -e "${RED}network name '$new_network_name' already exists${NC}"
+                        read -r -p "re-enter network name, press enter to continue..."
+                        continue
+                    fi
+
+                    break
+                done
+
+                echo "choose network driver type: "
+                echo "1) bridge"
+                echo "2) host"
+                echo "3) overlay"
+                echo "4) macvlan"
+                echo "5) ipvlan"
+                echo "6) none"
                 echo "q) return"
-                echo 
+                echo
 
-                read -r -p "choose (1-2/q): " network_mode_choice
+                read -r -p "choose (1-6/q): " driver_choice
 
-                if [ "$network_mode_choice" = "q" ] || [ "$network_mode_choice" = "Q" ]; then
+                if [ "$driver_choice" = "q" ] || [ "$driver_choice" = "Q" ]; then
                     continue
                 fi
 
-                local new_network=""
-
-                case $network_mode_choice in
-                    1)
-                        if show_network_list; then
-                            echo -e "${GREEN}selected network: $SELECTED_NETWORK_NAME${NC}"
-                            new_network="$SELECTED_NETWORK_NAME"
-                        else
-                            echo "network selection cancelled"
-                            read -r -p "press enter to continue..."
-                            continue
-                        fi
-                        ;;
-                    2)
-                        while true; do
-                            read -r -p "enter new network name: " new_network_name
-                            if [[ -z "$new_network_name" ]]; then
-                                echo "network name cannot be empty"
-                                continue
-                            fi
-
-                            if check_network_exists "$new_network_name"; then
-                                echo -e "${RED}network name '$new_network_name' already exists${NC}"
-                                read -r -p "re-enter network name, press enter to continue..."
-                                continue
-                            fi
-
-                            break
-                        done
-
-                        echo "choose network driver type: "
-                        echo "1) bridge"
-                        echo "2) host"
-                        echo "3) overlay"
-                        echo "4) macvlan"
-                        echo "5) ipvlan"
-                        echo "6) none"
-                        echo "q) return"
-                        echo 
-
-                        read -r -p "choose (1-6/q): " driver_choice
-
-                        if [ "$driver_choice" = "q" ] || [ "$driver_choice" = "Q" ]; then
-                            continue
-                        fi
-
-                        case $driver_choice in
-                            1) network_driver="bridge" ;;
-                            2) network_driver="host" ;;
-                            3) network_driver="overlay" ;;
-                            4) network_driver="macvlan" ;;
-                            5) network_driver="ipvlan" ;;
-                            6) network_driver="none" ;;
-                            *)
-                                echo "invalid choice, using default bridge driver"
-                                network_driver="bridge"
-                                ;;
-                        esac
-
-                        echo "creating network '$new_network_name' (driver: $network_driver)..."
-                        if docker network create --driver "$network_driver" "$new_network_name"; then
-                            echo -e "${GREEN}network '$new_network_name' created successfully${NC}"
-                            new_network="$new_network_name"
-                        else
-                            echo -e "${RED}network creation failed${NC}"
-                            read -r -p "press enter to continue..."
-                            continue
-                        fi
-                        ;;
-                    *)
-                        read -r -p "press enter to continue..."
-                        continue
-                        ;;
+                case $driver_choice in
+                1) network_driver="bridge" ;;
+                2) network_driver="host" ;;
+                3) network_driver="overlay" ;;
+                4) network_driver="macvlan" ;;
+                5) network_driver="ipvlan" ;;
+                6) network_driver="none" ;;
+                *)
+                    echo "invalid choice, using default bridge driver"
+                    network_driver="bridge"
+                    ;;
                 esac
 
-                if [[ -n "$new_network" ]]; then
-                    if stop_container; then
-                        local current_networks
-                        current_networks=$(docker inspect "$CONTAINER_ID" -f '{{range $net, $config := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null)
-                        for net in $current_networks; do
-                            docker network disconnect "$net" "$CONTAINER_ID" 2>/dev/null
-                        done
-
-                        if docker network connect "$new_network" "$CONTAINER_ID"; then
-                            echo -e "${GREEN}network mode modified successfully${NC}"
-                            start_container
-                        else
-                            echo -e "${RED}network mode modification failed${NC}"
-                        fi
-                    fi
-                fi
-                read -r -p "press enter to continue..."
-                ;;
-
-            3)
-                read -r -p "set auto-start? (Y/n): " auto_restart
-                if [ "$auto_restart" = "n" ] || [ "$auto_restart" = "N" ]; then
-                    if docker update --restart=no "$CONTAINER_ID"; then
-                        echo -e "${GREEN}auto-start cancelled${NC}"
-                    else
-                        echo -e "${RED}failed to cancel auto-start${NC}"
-                    fi
+                echo "creating network '$new_network_name' (driver: $network_driver)..."
+                if docker network create --driver "$network_driver" "$new_network_name"; then
+                    echo -e "${GREEN}network '$new_network_name' created successfully${NC}"
+                    new_network="$new_network_name"
                 else
-                    if docker update --restart=always "$CONTAINER_ID"; then
-                        echo -e "${GREEN}set to auto-start${NC}"
-                    else
-                        echo -e "${RED}failed to set auto-start${NC}"
-                    fi
+                    echo -e "${RED}network creation failed${NC}"
+                    read -r -p "press enter to continue..."
+                    continue
                 fi
-                read -r -p "press enter to continue..."
-                ;;
-            4)
-                return 0
                 ;;
             *)
-                echo "invalid choice, please try again"
                 read -r -p "press enter to continue..."
+                continue
                 ;;
+            esac
+
+            if [[ -n "$new_network" ]]; then
+                if stop_container; then
+                    local current_networks
+                    current_networks=$(docker inspect "$CONTAINER_ID" -f '{{range $net, $config := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null)
+                    for net in $current_networks; do
+                        docker network disconnect "$net" "$CONTAINER_ID" 2>/dev/null
+                    done
+
+                    if docker network connect "$new_network" "$CONTAINER_ID"; then
+                        echo -e "${GREEN}network mode modified successfully${NC}"
+                        start_container
+                    else
+                        echo -e "${RED}network mode modification failed${NC}"
+                    fi
+                fi
+            fi
+            read -r -p "press enter to continue..."
+            ;;
+
+        3)
+            read -r -p "set auto-start? (Y/n): " auto_restart
+            if [ "$auto_restart" = "n" ] || [ "$auto_restart" = "N" ]; then
+                if docker update --restart=no "$CONTAINER_ID"; then
+                    echo -e "${GREEN}auto-start cancelled${NC}"
+                else
+                    echo -e "${RED}failed to cancel auto-start${NC}"
+                fi
+            else
+                if docker update --restart=always "$CONTAINER_ID"; then
+                    echo -e "${GREEN}set to auto-start${NC}"
+                else
+                    echo -e "${RED}failed to set auto-start${NC}"
+                fi
+            fi
+            read -r -p "press enter to continue..."
+            ;;
+        4)
+            return 0
+            ;;
+        *)
+            echo "invalid choice, please try again"
+            read -r -p "press enter to continue..."
+            ;;
         esac
     done
 }
@@ -1266,32 +1282,32 @@ install_container() {
                 while true; do
                     read -r -p "choose action: 1) re-enter name 2) use auto-generated name 3) exit (1/2/3): " name_choice
                     case "$name_choice" in
-                        1)
-                            read -r -p "enter new container name: " container_name
-                            if [[ -n "$container_name" ]] && [[ "$container_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]]; then
-                                if docker ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
-                                    echo -e "${RED}container name '$container_name' still exists${NC}"
-                                    continue
-                                else
-                                    name_option="--name $container_name"
-                                    break
-                                fi
-                            else
-                                echo -e "${RED}invalid container name format${NC}"
+                    1)
+                        read -r -p "enter new container name: " container_name
+                        if [[ -n "$container_name" ]] && [[ "$container_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]]; then
+                            if docker ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
+                                echo -e "${RED}container name '$container_name' still exists${NC}"
                                 continue
+                            else
+                                name_option="--name $container_name"
+                                break
                             fi
-                            ;;
-                        2)
-                            echo "will use auto-generated container name"
-                            break
-                            ;;
-                        3)
-                            echo "exit container installation"
-                            return 0
-                            ;;
-                        *)
-                            echo "invalid choice, please enter 1, 2 or 3"
-                            ;;
+                        else
+                            echo -e "${RED}invalid container name format${NC}"
+                            continue
+                        fi
+                        ;;
+                    2)
+                        echo "will use auto-generated container name"
+                        break
+                        ;;
+                    3)
+                        echo "exit container installation"
+                        return 0
+                        ;;
+                    *)
+                        echo "invalid choice, please enter 1, 2 or 3"
+                        ;;
                     esac
                 done
             else
@@ -1321,7 +1337,7 @@ install_container() {
                 echo -e "${RED}environment variable cannot be empty, please re-enter${NC}"
                 continue
             fi
-            
+
             if [[ "$env_var" =~ ^[A-Za-z_][A-Za-z0-9_]*=.*$ ]]; then
                 if [[ -z "$env_options" ]]; then
                     env_options="-e $env_var"
@@ -1329,19 +1345,19 @@ install_container() {
                     env_options="$env_options -e $env_var"
                 fi
                 echo -e "${GREEN}added environment variable: $env_var${NC}"
-                
+
                 while true; do
                     read -r -p "need to add more environment variables? (y/n): " more_env
                     case "$more_env" in
-                        Y|y) break ;;
-                        N|n) break 2 ;;
-                        *) echo -e "${RED}please enter y or n${NC}" ;;
+                    Y | y) break ;;
+                    N | n) break 2 ;;
+                    *) echo -e "${RED}please enter y or n${NC}" ;;
                     esac
                 done
                 if [[ "$more_env" = "N" || "$more_env" = "n" || "$more_env" = "" ]]; then
                     break
                 fi
-                
+
             else
                 echo -e "${RED}invalid environment variable format, use KEY=value format${NC}"
             fi
@@ -1392,73 +1408,72 @@ install_container() {
 
         if [[ "$network_mode_choice" != "q" && "$network_mode_choice" != "Q" ]]; then
             case $network_mode_choice in
-                1)
-                    if show_network_list; then
-                        echo -e "${GREEN}selected network: $SELECTED_NETWORK_NAME${NC}"
-                        network_option="--network $SELECTED_NETWORK_NAME"
-                        selected_network_driver="$SELECTED_NETWORK_DRIVER"
-                    else
-                        echo "network selection cancelled"
+            1)
+                if show_network_list; then
+                    echo -e "${GREEN}selected network: $SELECTED_NETWORK_NAME${NC}"
+                    network_option="--network $SELECTED_NETWORK_NAME"
+                    selected_network_driver="$SELECTED_NETWORK_DRIVER"
+                else
+                    echo "network selection cancelled"
+                fi
+                ;;
+            2)
+                while true; do
+                    read -r -p "enter new network name: " new_network_name
+                    if [[ -z "$new_network_name" ]]; then
+                        echo "network name cannot be empty"
+                        continue
                     fi
-                    ;;
-                2)
-                    while true; do
-                        read -r -p "enter new network name: " new_network_name
-                        if [[ -z "$new_network_name" ]]; then
-                            echo "network name cannot be empty"
-                            continue
-                        fi
-                        if check_network_exists "$new_network_name"; then
-                            echo -e "${RED}network name '$new_network_name' already exists${NC}"
-                            read -r -p "re-enter network name, press enter to continue..."
-                            continue
-                        fi
-                        break
-                    done
+                    if check_network_exists "$new_network_name"; then
+                        echo -e "${RED}network name '$new_network_name' already exists${NC}"
+                        read -r -p "re-enter network name, press enter to continue..."
+                        continue
+                    fi
+                    break
+                done
 
-                    if [[ -n "$new_network_name" ]]; then
-                        echo "choose network driver type: "
-                        echo "1) bridge"
-                        echo "2) host"
-                        echo "3) overlay"
-                        echo "4) macvlan"
-                        echo "5) ipvlan"
-                        echo "6) none"
-                        echo "q) return"
-                        echo 
+                if [[ -n "$new_network_name" ]]; then
+                    echo "choose network driver type: "
+                    echo "1) bridge"
+                    echo "2) host"
+                    echo "3) overlay"
+                    echo "4) macvlan"
+                    echo "5) ipvlan"
+                    echo "6) none"
+                    echo "q) return"
+                    echo
 
-                        read -r -p "choose (1-6/q): " driver_choice
+                    read -r -p "choose (1-6/q): " driver_choice
 
-                        if [[ "$driver_choice" != "q" && "$driver_choice" != "Q" ]]; then
-                            case $driver_choice in
-                                1) network_driver="bridge" ;;
-                                2) network_driver="host" ;;
-                                3) network_driver="overlay" ;;
-                                4) network_driver="macvlan" ;;
-                                5) network_driver="ipvlan" ;;
-                                6) network_driver="none" ;;
-                                *)
-                                    echo "invalid choice, using default bridge driver"
-                                    network_driver="bridge"
-                                    ;;
-                            esac
+                    if [[ "$driver_choice" != "q" && "$driver_choice" != "Q" ]]; then
+                        case $driver_choice in
+                        1) network_driver="bridge" ;;
+                        2) network_driver="host" ;;
+                        3) network_driver="overlay" ;;
+                        4) network_driver="macvlan" ;;
+                        5) network_driver="ipvlan" ;;
+                        6) network_driver="none" ;;
+                        *)
+                            echo "invalid choice, using default bridge driver"
+                            network_driver="bridge"
+                            ;;
+                        esac
 
-                            echo "creating network '$new_network_name' (driver: $network_driver)..."
-                            if docker network create --driver "$network_driver" "$new_network_name"; then
-                                network_option="--network $new_network_name"
-                                selected_network_driver="$network_driver"
-                            else
-                                echo -e "${RED}network creation failed${NC}"
-                            fi
+                        echo "creating network '$new_network_name' (driver: $network_driver)..."
+                        if docker network create --driver "$network_driver" "$new_network_name"; then
+                            network_option="--network $new_network_name"
+                            selected_network_driver="$network_driver"
                         else
-                            echo "network driver selection cancelled"
-                            continue
+                            echo -e "${RED}network creation failed${NC}"
                         fi
+                    else
+                        echo "network driver selection cancelled"
                     fi
-                    ;;
-                *)
-                    echo "invalid choice"
-                    ;;
+                fi
+                ;;
+            *)
+                echo "invalid choice"
+                ;;
             esac
         else
             echo "network configuration skipped"
@@ -1508,9 +1523,9 @@ install_container() {
             while true; do
                 read -r -p "need to map more ports? (y/n): " more_ports
                 case "$more_ports" in
-                    Y|y) break ;;
-                    N|n) break 2 ;;
-                    *) echo -e "${RED}please enter y or n${NC}" ;;
+                Y | y) break ;;
+                N | n) break 2 ;;
+                *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
 
@@ -1558,9 +1573,9 @@ install_container() {
             while true; do
                 read -r -p "need to add more mount points? (y/n): " more_volumes
                 case "$more_volumes" in
-                    Y|y) break ;;
-                    N|n) break 2 ;;
-                    *) echo -e "${RED}please enter y or n${NC}" ;;
+                Y | y) break ;;
+                N | n) break 2 ;;
+                *) echo -e "${RED}please enter y or n${NC}" ;;
                 esac
             done
 
@@ -1581,7 +1596,7 @@ install_container() {
         echo -e "${GREEN}container installation completed${NC}"
         read -r -p "press enter to continue..."
     fi
-} 
+}
 
 clear_container_logs() {
     echo "clearing logs for container $CONTAINER_ID..."
@@ -1709,69 +1724,69 @@ main() {
         fi
         read -r -p "choose operation (1-9/p/c/q): " access_mode
 
-    case $access_mode in
+        case $access_mode in
         1)
             clear
             show_log_menu
             read -r -p "choose log operation (1-6/q): " log_choice
 
             case $log_choice in
-                1)
-                    clear
-                    show_container_config
-                    echo "showing last 50 lines of logs..."
-                    echo "=========================================="
-                    docker logs --tail 50 "$CONTAINER_ID"
-                    echo 
-                    echo "=========================================="
-                    read -r -p "press enter to return..."
-                    show_container=false
-                    continue
-                    ;;
-                2)
-                    clear
-                    show_container_config
-                    echo "showing all logs..."
-                    echo "=========================================="
-                    docker logs "$CONTAINER_ID"
-                    echo 
-                    echo "=========================================="
-                    read -r -p "press enter to return..."
-                    show_container=false
-                    continue
-                    ;;
-                3)
-                    clear
-                    show_container_config
-                    echo "real-time log tracking, press ctrl+c to stop..."
-                    echo "=========================================="
-                    docker logs -f "$CONTAINER_ID"
-                    echo 
-                    echo "=========================================="
-                    read -r -p "press enter to return..."
-                    show_container=false
-                    continue
-                    ;;
-                4)
-                    show_container=true
-                    return
-                    ;;
-                5)
-                    clear_container_logs
-                    show_container=false
-                    continue
-                    ;;
-                6)
-                    show_container=false
-                    continue
-                    ;;
-                q|Q)
-                    break
-                    ;;
-                *)
-                    show_container=false
-                    continue
-                    ;;
+            1)
+                clear
+                show_container_config
+                echo "showing last 50 lines of logs..."
+                echo "=========================================="
+                docker logs --tail 50 "$CONTAINER_ID"
+                echo
+                echo "=========================================="
+                read -r -p "press enter to return..."
+                show_container=false
+                continue
+                ;;
+            2)
+                clear
+                show_container_config
+                echo "showing all logs..."
+                echo "=========================================="
+                docker logs "$CONTAINER_ID"
+                echo
+                echo "=========================================="
+                read -r -p "press enter to return..."
+                show_container=false
+                continue
+                ;;
+            3)
+                clear
+                show_container_config
+                echo "real-time log tracking, press ctrl+c to stop..."
+                echo "=========================================="
+                docker logs -f "$CONTAINER_ID"
+                echo
+                echo "=========================================="
+                read -r -p "press enter to return..."
+                show_container=false
+                continue
+                ;;
+            4)
+                show_container=true
+                return
+                ;;
+            5)
+                clear_container_logs
+                show_container=false
+                continue
+                ;;
+            6)
+                show_container=false
+                continue
+                ;;
+            q | Q)
+                break
+                ;;
+            *)
+                show_container=false
+                continue
+                ;;
             esac
             ;;
         2)
@@ -1872,17 +1887,17 @@ main() {
             show_container=false
             continue
             ;;
-        p|P)
+        p | P)
             publish_docker
             show_container=false
             continue
             ;;
-        c|C)
+        c | C)
             cleanup_resources docker
             show_container=false
             continue
             ;;
-        q|Q)
+        q | Q)
             echo
             break
             ;;
@@ -1890,8 +1905,8 @@ main() {
             show_container=false
             continue
             ;;
-    esac
+        esac
     done
 }
 
-main "$@" 
+main "$@"
